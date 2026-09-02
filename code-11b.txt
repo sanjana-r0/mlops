@@ -1,3 +1,4 @@
+Build FastAPI app with Pydantic input schema, /predict (returns prediction + confidence), /health (model version + status), /model-info endpoints. Write pytest integration tests using httpx.AsyncClient. Run tests inside Docker.
 # 11(b) FastAPI ML Prediction API with Docker
 
 ## Aim
