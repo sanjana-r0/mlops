@@ -1,0 +1,256 @@
+10(b) Multi-stage Dockerfile
+
+Now the second part.
+
+The question asks for:
+
+Multi-stage Dockerfile using python:3.11-slim, install only production dependencies, copy model artifacts, add HEALTHCHECK, expose port 8000, build, run, verify health, push to Docker Hub, test predictions via curl.
+
+We'll make a very small Flask ML prediction API.
+
+Step 1 — Project structure
+
+Create a new folder:
+
+student-ml-docker
+
+Inside:
+
+student-ml-docker/
+├── app.py
+├── model.py
+├── requirements.txt
+├── Dockerfile
+└── model.pkl
+Step 2 — Install Python packages locally
+pip install flask scikit-learn
+Step 3 — Create the model
+
+Create model.py:
+
+from sklearn.linear_model import LogisticRegression
+import pickle
+
+X = [[1], [2], [3], [4], [5], [6]]
+y = [0, 0, 0, 1, 1, 1]
+
+model = LogisticRegression()
+model.fit(X, y)
+
+with open("model.pkl", "wb") as f:
+    pickle.dump(model, f)
+
+print("Model saved")
+
+Run:
+
+python model.py
+
+You should get:
+
+Model saved
+
+and:
+
+model.pkl
+
+will be created.
+
+This is our model artifact.
+
+Step 4 — Create Flask API
+
+Create app.py:
+
+from flask import Flask, request, jsonify
+import pickle
+
+app = Flask(__name__)
+
+with open("model.pkl", "rb") as f:
+    model = pickle.load(f)
+
+
+@app.get("/health")
+def health():
+    return "healthy"
+
+
+@app.post("/predict")
+def predict():
+    data = request.get_json()
+    value = data["value"]
+
+    prediction = model.predict([[value]])[0]
+
+    return jsonify({
+        "prediction": int(prediction)
+    })
+
+
+app.run(host="0.0.0.0", port=8000)
+
+We have two endpoints:
+
+/health
+/predict
+Step 5 — requirements.txt
+
+Create:
+
+requirements.txt
+
+Put:
+
+flask
+scikit-learn
+
+These are the production dependencies required to run the application.
+
+Step 6 — Multi-stage Dockerfile
+
+Now the important part.
+
+Create Dockerfile:
+
+# Stage 1: Build
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+COPY app.py .
+COPY model.pkl .
+
+
+# Stage 2: Production
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY --from=builder /install /usr/local
+
+COPY --from=builder /app/app.py .
+COPY --from=builder /app/model.pkl .
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+CMD ["python", "app.py"]
+
+This is a multi-stage build: the first stage prepares dependencies and application artifacts, while the second stage is the production image. Docker's HEALTHCHECK instruction lets Docker track whether the container is actually responding correctly.
+
+Understand the Dockerfile
+Stage 1
+FROM python:3.11-slim AS builder
+
+Creates the builder stage.
+
+Install dependencies
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+Copy application
+COPY app.py .
+COPY model.pkl .
+Stage 2
+FROM python:3.11-slim
+
+This is the final production image.
+
+The slim variant is intended to be a smaller, production-oriented Python image.
+
+Copy only what we need
+COPY --from=builder /install /usr/local
+COPY --from=builder /app/app.py .
+COPY --from=builder /app/model.pkl .
+Port
+EXPOSE 8000
+Health check
+HEALTHCHECK ...
+Start application
+CMD ["python", "app.py"]
+Step 7 — Build Docker image
+
+Run:
+
+docker build -t student-ml:latest .
+
+If successful:
+
+Successfully tagged student-ml:latest
+
+Check:
+
+docker images
+Step 8 — Run container
+docker run -d --name student-ml -p 8000:8000 student-ml:latest
+
+Check:
+
+docker ps
+Step 9 — Check health
+
+Wait a few seconds, then:
+
+docker ps
+
+You should eventually see something similar to:
+
+student-ml   ...   Up ... (healthy)
+
+You can also directly inspect:
+
+docker inspect --format="{{.State.Health.Status}}" student-ml
+
+Expected:
+
+healthy
+
+Docker documents that a successful healthcheck gives the container a healthy status.
+
+Step 10 — Test prediction using curl
+
+Use:
+
+curl.exe -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d "{\"value\":5}"
+
+Expected response will be similar to:
+
+{
+  "prediction": 1
+}
+
+Try:
+
+curl.exe -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d "{\"value\":2}"
+
+Expected:
+
+{
+  "prediction": 0
+}
+Step 11 — Push to Docker Hub
+
+Since you've already created your Docker Hub account and used it in the previous experiment, you can use the same account.
+
+Login:
+
+docker login
+
+Tag:
+
+docker tag student-ml:latest YOUR_USERNAME/student-ml:latest
+
+For your Docker Hub username from the previous experiment, that would be:
+
+docker tag student-ml:latest sanjana39/student-ml:latest
+
+Push:
+
+docker push sanjana39/student-ml:latest
+
+Now the image is available in Docker Hub.
