@@ -1,4 +1,5 @@
 # 4(a) Git Collaborative Development — Student Management
+Git Collaborative Development of a College Management System: You are part of a 4-member software development team building a College Management System using Python. The project is hosted on GitHub, and the team follows this workflow:
 
 ## Aim
 
