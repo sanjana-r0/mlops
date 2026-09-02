@@ -1,0 +1,134 @@
+# 10(a) Two Developers Working on One Python Project
+
+## Aim
+
+To demonstrate collaborative development using Git and GitHub by allowing two developers to work on the same Python project.
+
+## Requirements
+
+* Git
+* GitHub account
+* Python
+* VS Code
+
+## Procedure
+
+### Step 1: Create GitHub Repository
+
+Create a GitHub repository named:
+
+```text
+student-collaboration
+```
+
+Clone it:
+
+```powershell
+git clone https://github.com/YOUR_USERNAME/student-collaboration.git
+cd student-collaboration
+```
+
+Check the branch:
+
+```powershell
+git branch
+```
+
+---
+
+### Step 2: Developer 1 Creates a Python File
+
+Create `student.py`:
+
+```python
+def calculate_result(marks):
+    if marks >= 50:
+        return "Pass"
+    return "Fail"
+```
+
+Run:
+
+```powershell
+git add .
+git commit -m "Add student result function"
+git push
+```
+
+---
+
+### Step 3: Developer 2 Clones the Repository
+
+Developer 2 clones the same repository:
+
+```powershell
+git clone https://github.com/YOUR_USERNAME/student-collaboration.git
+cd student-collaboration
+```
+
+Developer 2 can now see the files created by Developer 1.
+
+---
+
+### Step 4: Developer 2 Adds a Test
+
+Create `test_student.py`:
+
+```python
+from student import calculate_result
+
+def test_result():
+    assert calculate_result(60) == "Pass"
+```
+
+Then:
+
+```powershell
+git add .
+git commit -m "Add student result test"
+git push
+```
+
+---
+
+### Step 5: Developer 1 Gets the Changes
+
+Developer 1 runs:
+
+```powershell
+git pull
+```
+
+The changes made by Developer 2 are now available locally.
+
+---
+
+### Step 6: Verify Commit History
+
+Run:
+
+```powershell
+git log --oneline
+```
+
+You should see both developers' commits.
+
+## Important Commands
+
+```text
+git clone
+git pull
+git add .
+git commit -m "message"
+git push
+```
+
+**Memory:** Clone → Pull → Add → Commit → Push
+
+## Output
+
+Two developers successfully collaborated on the same Python project using Git and GitHub.
+
+## Result
+
+Successfully demonstrated collaborative development using Git operations such as clone, pull, add, commit, and push.
