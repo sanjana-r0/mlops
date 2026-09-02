@@ -1,0 +1,313 @@
+
+# Experiment 6(a) — Jenkins Docker CI Pipeline
+
+## Aim
+
+To create a Jenkins CI pipeline that automatically:
+
+Checkout → Build Docker Image → Deploy & Verify
+
+and creates a new Docker image for every build.
+
+---
+
+## Requirements
+
+* Jenkins
+* Git
+* Docker Desktop
+* Git repository
+* VS Code
+
+---
+
+# Procedure
+
+## Step 1: Create a simple web application
+
+Create a folder:
+jenkins-docker-demo
+
+Inside it, create:
+
+```text
+index.html
+Dockerfile
+Jenkinsfile
+```
+
+### `index.html`
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jenkins Docker Demo</title>
+</head>
+<body>
+    <h1>Hello from Jenkins Docker!</h1>
+</body>
+</html>
+```
+
+---
+
+## Step 2: Create Dockerfile
+
+```dockerfile
+FROM nginx:alpine
+
+COPY index.html /usr/share/nginx/html/index.html
+
+EXPOSE 80
+```
+
+This creates a small web server using Nginx.
+
+---
+
+## Step 3: Create Jenkinsfile
+
+This is the important part.
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                bat 'docker build -t jenkins-app:build-%BUILD_NUMBER% .'
+            }
+        }
+
+        stage('Deploy & Verify') {
+            steps {
+                bat 'docker stop jenkins-app || exit 0'
+                bat 'docker rm jenkins-app || exit 0'
+                bat 'docker run -d --name jenkins-app -p 8081:80 jenkins-app:build-%BUILD_NUMBER%'
+                bat 'curl http://localhost:8081'
+            }
+        }
+    }
+}
+```
+
+### What happens?
+
+#### Stage 1 — Checkout
+
+```text
+Git repository
+      ↓
+Jenkins gets the code
+```
+
+#### Stage 2 — Build Image
+
+```text
+Dockerfile
+    ↓
+Docker image
+    ↓
+jenkins-app:build-1
+```
+
+If it is build #2:
+
+```text
+jenkins-app:build-2
+```
+
+So every Jenkins build gets its own image tag.
+
+#### Stage 3 — Deploy & Verify
+
+First:
+
+```text
+Stop old container
+      ↓
+Remove old container
+      ↓
+Start new container
+      ↓
+Check localhost:8081
+```
+
+---
+
+# Step 4: Push project to Git
+
+If you're using a GitHub repository:
+
+```bash
+git add .
+git commit -m "Add Jenkins Docker pipeline"
+git push
+```
+
+---
+
+# Step 5: Configure Jenkins
+
+Create a new **Pipeline** project.
+
+For example:
+
+```text
+Jenkins → New Item → Jenkins-Docker-Pipeline → Pipeline
+```
+
+Select:
+
+```text
+Pipeline script from SCM
+```
+
+Then:
+
+```text
+SCM → Git
+```
+
+Enter your repository URL.
+
+Branch:
+
+```text
+*/main
+```
+
+Script Path:
+
+```text
+Jenkinsfile
+```
+
+Click:
+
+**Save**
+
+---
+
+# Step 6: Run the Pipeline
+
+Click:
+
+**Build Now**
+
+Jenkins will execute:
+
+```text
+Checkout
+   ↓
+Build Image
+   ↓
+Deploy & Verify
+```
+
+---
+
+# Step 7: Verify the Docker container
+
+After the Jenkins build succeeds, run:
+
+```bash
+docker ps
+```
+
+You should see something like:
+
+```text
+CONTAINER ID   IMAGE                    NAMES
+xxxxxxx        jenkins-app:build-1     jenkins-app
+```
+
+Then open in your browser:
+
+```text
+http://localhost:8081
+```
+
+You should see:
+
+```text
+Hello from Jenkins Docker!
+```
+
+---
+
+# Expected Output
+
+Jenkins should show:
+
+```text
+Checkout              ✓
+Build Image            ✓
+Deploy & Verify        ✓
+
+Finished: SUCCESS
+```
+
+Docker image:
+
+```text
+jenkins-app:build-1
+```
+
+Container:
+
+```text
+jenkins-app
+```
+
+Browser:
+
+```text
+Hello from Jenkins Docker!
+```
+
+---
+
+# Important Commands
+
+For the exam, remember these:
+
+### Build image
+
+```bash
+docker build -t jenkins-app:build-1 .
+```
+
+### Run container
+
+```bash
+docker run -d --name jenkins-app -p 8081:80 jenkins-app:build-1
+```
+
+### Check container
+
+```bash
+docker ps
+```
+
+### Verify
+
+```bash
+curl http://localhost:8081
+```
+
+---
+
+
+### Result
+
+**Thus, a Jenkins pipeline was successfully created to checkout the source code, build a versioned Docker image, deploy the container on port 8081, and verify the running web application.**
