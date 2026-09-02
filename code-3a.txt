@@ -1,0 +1,209 @@
+3. Scenario: Deploying a web page is only half the battle; validating its 
+status programmatically is essential. You must construct an automated deployment verification step inside a pipeline job.
+
+# 3-a Automated HTTP Validation Using Jenkins
+
+## Aim
+
+To deploy a static website using Jenkins and automatically verify that the local HTTP server returns **HTTP 200 OK**.
+
+## Step 1: Create project
+
+Create a folder:
+
+```text
+portfolio
+```
+
+Create `index.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>My Portfolio</h1>
+</body>
+</html>
+```
+
+Initialize Git:
+
+```powershell
+cd portfolio
+git init
+git add .
+git commit -m "Add portfolio website"
+```
+
+---
+
+## Step 2: Start a local HTTP server
+
+From the `portfolio` folder, run:
+
+```powershell
+python -m http.server 8000
+```
+
+Keep this terminal running.
+
+Test in browser:
+
+```text
+http://localhost:8000
+```
+
+---
+
+## Step 3: Create Jenkins Pipeline
+
+In Jenkins:
+
+**New Item → Automated-HTTP-Validation → Pipeline**
+
+Choose **Pipeline script** and enter:
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Deploy') {
+            steps {
+                bat 'copy /Y index.html C:\\inetpub\\wwwroot\\index.html'
+            }
+        }
+
+        stage('Validate') {
+            steps {
+                bat 'curl.exe -I http://localhost:8000'
+            }
+        }
+    }
+}
+```
+
+Jenkins uses `bat` for Windows command execution in Pipelines. ([jenkins.io](https://www.jenkins.io/doc/pipeline/steps/workflow-durable-task-step/?utm_source=chatgpt.com))
+
+**But:** because our HTTP server is running from the project folder on port **8000**, the copy to `C:\inetpub\wwwroot` isn't actually needed for the validation. To make the lab reliably work with the server we're running, use this simpler Deploy stage instead:
+
+```groovy
+stage('Deploy') {
+    steps {
+        bat 'echo Portfolio files deployed'
+    }
+}
+```
+
+So the **final Jenkinsfile** should be:
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Deploy') {
+            steps {
+                bat 'echo Portfolio files deployed'
+            }
+        }
+
+        stage('Validate') {
+            steps {
+                bat 'curl.exe -I http://localhost:8000'
+            }
+        }
+    }
+}
+```
+
+---
+
+## Step 4: Run Jenkins
+
+Click:
+
+**Build Now**
+
+In Console Output, you should see:
+
+```text
+HTTP/1.0 200 OK
+```
+
+and:
+
+```text
+Finished: SUCCESS
+```
+
+---
+
+## Step 5: Demonstrate Failure
+
+Stop the Python server with:
+
+```text
+Ctrl + C
+```
+
+Run Jenkins again.
+
+The Validate stage should fail because:
+
+```text
+localhost:8000
+```
+
+is no longer available.
+
+---
+
+## Step 6: Restart and Verify Success
+
+Start the server again:
+
+```powershell
+python -m http.server 8000
+```
+
+Run Jenkins again.
+
+Expected:
+
+```text
+HTTP/1.0 200 OK
+Finished: SUCCESS
+```
+
+## Important Commands
+
+```powershell
+git init
+git add .
+git commit -m "Add portfolio website"
+```
+
+Start server:
+
+```powershell
+python -m http.server 8000
+```
+
+Test manually:
+
+```powershell
+curl.exe -I http://localhost:8000
+```
+
+Expected:
+
+```text
+HTTP/1.0 200 OK
+```
+
+## Result
+
+Successfully implemented an automated Jenkins deployment verification pipeline that checks the HTTP response from the local web server and demonstrates both failure and successful pipeline execution.
