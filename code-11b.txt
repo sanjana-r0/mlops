@@ -1,0 +1,254 @@
+# 11(b) FastAPI ML Prediction API with Docker
+
+## Aim
+
+To build a FastAPI application with Pydantic input validation, `/predict`, `/health`, and `/model-info` endpoints, write pytest integration tests using `httpx.AsyncClient`, and run the tests inside Docker.
+
+## Step 1: Create project
+
+Create a folder:
+
+```text
+fastapi-ml
+```
+
+Create these files:
+
+```text
+app.py
+test_app.py
+requirements.txt
+Dockerfile
+```
+
+---
+
+## Step 2: `requirements.txt`
+
+```text
+fastapi
+uvicorn
+scikit-learn
+pytest
+httpx
+pytest-asyncio
+```
+
+---
+
+## Step 3: Create `app.py`
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+from sklearn.linear_model import LogisticRegression
+
+app = FastAPI()
+
+MODEL_VERSION = "1.0"
+
+# Simple trained model
+model = LogisticRegression()
+model.fit([[1], [2], [3], [4], [5], [6]], [0, 0, 0, 1, 1, 1])
+
+
+class PredictionInput(BaseModel):
+    value: float
+
+
+@app.post("/predict")
+def predict(data: PredictionInput):
+    prediction = int(model.predict([[data.value]])[0])
+    confidence = float(max(model.predict_proba([[data.value]])[0]))
+
+    return {
+        "prediction": prediction,
+        "confidence": round(confidence, 2)
+    }
+
+
+@app.get("/health")
+def health():
+    return {
+        "model_version": MODEL_VERSION,
+        "status": "healthy"
+    }
+
+
+@app.get("/model-info")
+def model_info():
+    return {
+        "model": "LogisticRegression",
+        "version": MODEL_VERSION
+    }
+```
+
+FastAPI uses Pydantic models to validate request data, and its testing support works with HTTPX. ([FastAPI][1])
+
+---
+
+## Step 4: Create `test_app.py`
+
+```python
+import pytest
+from httpx import ASGITransport, AsyncClient
+from app import app
+
+
+@pytest.mark.asyncio
+async def test_predict():
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/predict",
+            json={"value": 5}
+        )
+
+    assert response.status_code == 200
+    assert "prediction" in response.json()
+    assert "confidence" in response.json()
+
+
+@pytest.mark.asyncio
+async def test_health():
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as client:
+        response = await client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "healthy"
+
+
+@pytest.mark.asyncio
+async def test_model_info():
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as client:
+        response = await client.get("/model-info")
+
+    assert response.status_code == 200
+    assert response.json()["version"] == "1.0"
+```
+
+This follows FastAPI's documented `AsyncClient` + `ASGITransport` approach for asynchronous tests. ([FastAPI][2])
+
+---
+
+## Step 5: Create Dockerfile
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app.py .
+COPY test_app.py .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+---
+
+## Step 6: Build Docker image
+
+```powershell
+docker build -t fastapi-ml .
+```
+
+---
+
+## Step 7: Run tests inside Docker
+
+This is the important requirement.
+
+```powershell
+docker run --rm fastapi-ml pytest
+```
+
+Expected:
+
+```text
+3 passed
+```
+
+---
+
+## Step 8: Run the FastAPI application
+
+```powershell
+docker run -d --name fastapi-ml -p 8000:8000 fastapi-ml
+```
+
+Check:
+
+```powershell
+docker ps
+```
+
+---
+
+## Step 9: Test API
+
+### Health
+
+Open:
+
+```text
+http://localhost:8000/health
+```
+
+Expected:
+
+```json
+{
+  "model_version": "1.0",
+  "status": "healthy"
+}
+```
+
+### Model information
+
+```text
+http://localhost:8000/model-info
+```
+
+Expected:
+
+```json
+{
+  "model": "LogisticRegression",
+  "version": "1.0"
+}
+```
+
+### Prediction
+
+```powershell
+curl.exe -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d "{\"value\":5}"
+```
+
+Expected:
+
+```json
+{
+  "prediction": 1,
+  "confidence": 0.XX
+}
+```
+
+---
+
+
+
+
