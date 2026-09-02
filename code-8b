@@ -1,4 +1,7 @@
-
+8a) is same as 4a) all git commands
+8b) below
+Define a 3-stage dvc.yaml pipeline: prepare → train → evaluate. 
+Version two dataset iterations using Git + DVC. Run dvc repro and use dvc metrics diff to show metric changes between versions.
 # Experiment — DVC 3-Stage ML Pipeline
 
 ## Aim
