@@ -309,3 +309,190 @@ withCredentials
 ### One important point
 
 You **do not manually type your Docker Hub password in the Jenkinsfile**. You enter it **once in Jenkins Credentials**, give it the ID `dockerhub-creds`, and Jenkins uses it through `withCredentials`.
+
+Great. Now let's set up the **Jenkins credential**. This is the important security part.
+
+## Step 2 — Add Docker Hub credentials to Jenkins
+
+Open Jenkins:
+
+```text
+http://localhost:8080
+```
+
+Then go to:
+
+**Manage Jenkins → Credentials**
+
+Then:
+
+**System → Global credentials (unrestricted) → Add Credentials**
+
+Fill it like this:
+
+| Field           | Enter                    |
+| --------------- | ------------------------ |
+| **Kind**        | Username with password   |
+| **Username**    | `sanjana39`              |
+| **Password**    | Your Docker Hub password |
+| **ID**          | `dockerhub-creds`        |
+| **Description** | Docker Hub credentials   |
+
+Then click **Create**.
+
+### ⚠️ Important
+
+The **ID must be exactly**:
+
+```text
+dockerhub-creds
+```
+
+We'll use that ID in the Jenkinsfile.
+
+Also, **don't send me your password**.
+
+---
+
+### One thing to check
+
+If you have **2FA enabled on Docker Hub**, your normal Docker Hub password may not work for command-line login. In that case, we'll use a **Personal Access Token (PAT)** instead.
+
+Since your screenshot showed a **2FA** option, if you have actually enabled 2FA, tell me and I'll give you the quick PAT setup.
+
+Otherwise, create the credential now and tell me **done**.
+
+Perfect. 👍
+
+## Step 3 — Create the project files
+
+In VS Code, create a new folder, for example:
+
+```text
+jenkins-docker-push
+```
+
+Inside it create **3 files**:
+
+```text
+jenkins-docker-push/
+├── app.txt
+├── Dockerfile
+└── Jenkinsfile
+```
+
+### 1. `app.txt`
+
+```text
+Hello from Docker Hub!
+```
+
+### 2. `Dockerfile`
+
+```dockerfile
+FROM alpine
+
+COPY app.txt /app.txt
+
+CMD ["cat", "/app.txt"]
+```
+
+### 3. `Jenkinsfile`
+
+Use this version — it's simple and matches the experiment:
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Build Image') {
+            steps {
+                bat 'docker build -t myapp .'
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                }
+            }
+        }
+
+        stage('Tag Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    bat 'docker tag myapp %DOCKER_USER%/jenkins-demo:latest'
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    bat 'docker push %DOCKER_USER%/jenkins-demo:latest'
+                }
+            }
+        }
+    }
+}
+```
+
+### Why `withCredentials`?
+
+Instead of putting:
+
+```text
+username = sanjana39
+password = mypassword
+```
+
+directly in the Jenkinsfile, Jenkins retrieves them securely using:
+
+```text
+dockerhub-creds
+```
+
+which is the credential ID you just created.
+
+---
+
+### Step 4 — Push these files to GitHub
+
+If you haven't created the GitHub repository yet, create one and then run:
+
+```powershell
+git init
+git add .
+git commit -m "Add Docker Hub Jenkins pipeline"
+git branch -M main
+git remote add origin YOUR_GITHUB_REPO_URL
+git push -u origin main
+```
+
+If you've **already created/cloned the GitHub repo**, don't run `git init` again. Just:
+
+```powershell
+git add .
+git commit -m "Add Docker Hub Jenkins pipeline"
+git push
+```
+
+Once the three files are visible in your GitHub repository, we'll configure the Jenkins Pipeline.
+
+
+
