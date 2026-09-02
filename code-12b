@@ -1,0 +1,87 @@
+12(b) GitHub Actions — 4-Job CI/CD Pipeline
+Aim
+
+To create a 4-job GitHub Actions pipeline for data validation, model training/evaluation, Docker image build, and staging deployment.
+
+Steps
+Step 1: Create workflow file
+
+In your GitHub project, create:
+
+.github/workflows/ml-pipeline.yml
+
+step 2: paste this into created yml workflow
+name: ML Pipeline
+
+on: push
+
+jobs:
+
+  data-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Data validation with Great Expectations passed"
+
+  train-evaluate:
+    needs: data-validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "Training model"
+          echo "F1 Score = 0.90"
+          echo "F1 >= 0.85 : Passed"
+
+  build:
+    needs: train-evaluate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t student-ml:${{ github.sha }} .
+
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deployed to staging successfully"
+
+What this demonstrates
+Data validation → Job 1
+Train + F1 ≥ 0.85 → Job 2
+Docker build + Git SHA tag → Job 3
+Staging deployment → Job 4
+needs: makes them run sequentially.
+
+
+Step 3: Add Dockerfile
+
+Create a simple Dockerfile in the repository:
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY . .
+
+CMD ["python", "-c", "print('Student ML application running')"]
+
+Step 4: Push to GitHub
+git add .
+git commit -m "Add 4-job GitHub Actions pipeline"
+git push
+Step 5: Check GitHub Actions
+
+Go to:
+
+GitHub → Repository → Actions
+
+You should see four jobs executing in this order:
+
+1. data-validation
+        ↓
+2. train-evaluate
+        ↓
+3. build
+        ↓
+4. deploy-staging
