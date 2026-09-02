@@ -1,0 +1,84 @@
+# 3(b) DORA Metrics Dashboard
+
+b. Write a Python script that reads 10+ sample data points for each DORA metric 
+(Deployment Frequency, Lead Time, CFR, MTTR) and generates a visual dashboard with charts.
+
+
+## Aim
+
+To create a Python script that uses sample data for the four DORA metrics and generates a visual dashboard with charts.
+
+The four traditional DORA metrics are Deployment Frequency, Lead Time for Changes, Change Failure Rate, and Failed Deployment Recovery Time (historically MTTR). ([Dora][1])
+
+## Step 1: Install packages
+
+```powershell
+pip install pandas matplotlib
+```
+
+## Step 2: Create `dora_dashboard.py`
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+data = {
+    "Deployment Frequency": [5, 6, 4, 7, 5, 8, 6, 7, 5, 9],
+    "Lead Time (hours)": [12, 10, 15, 8, 11, 9, 13, 10, 12, 7],
+    "CFR (%)": [10, 15, 5, 20, 10, 5, 15, 10, 5, 10],
+    "MTTR (hours)": [4, 3, 5, 2, 4, 3, 6, 3, 4, 2]
+}
+
+df = pd.DataFrame(data)
+
+print(df)
+
+fig, axes = plt.subplots(2, 2, figsize=(10, 7))
+
+axes[0, 0].plot(df["Deployment Frequency"], marker="o")
+axes[0, 0].set_title("Deployment Frequency")
+axes[0, 0].set_ylabel("Deployments")
+
+axes[0, 1].plot(df["Lead Time (hours)"], marker="o")
+axes[0, 1].set_title("Lead Time")
+axes[0, 1].set_ylabel("Hours")
+
+axes[1, 0].plot(df["CFR (%)"], marker="o")
+axes[1, 0].set_title("Change Failure Rate")
+axes[1, 0].set_ylabel("Percentage")
+
+axes[1, 1].plot(df["MTTR (hours)"], marker="o")
+axes[1, 1].set_title("MTTR")
+axes[1, 1].set_ylabel("Hours")
+
+plt.tight_layout()
+plt.savefig("dora_dashboard.png")
+plt.show()
+```
+
+## Step 3: Run
+
+```powershell
+python dora_dashboard.py
+```
+
+It will:
+
+* Generate **10 sample data points** for each metric.
+* Display the data in the terminal.
+* Generate four charts.
+* Save the dashboard as:
+
+```text
+dora_dashboard.png
+```
+
+## Output
+
+The dashboard contains charts for:
+
+1. Deployment Frequency
+2. Lead Time
+3. Change Failure Rate
+4. MTTR
+
