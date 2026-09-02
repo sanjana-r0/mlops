@@ -1,0 +1,132 @@
+JIRA question
+
+# 2(b) Jira Scrum + DevOps + DORA Metrics
+
+## Aim
+
+To create a Jira Scrum project with an Epic, User Stories and Sprint, map Scrum ceremonies to DevOps practices, and calculate the four DORA metrics using sample data.
+
+## Step 1: Create Jira Scrum Project
+
+In Jira:
+
+**Projects → Create project → Scrum**
+
+Project name:
+
+```text
+Student Attendance System
+```
+
+Jira Scrum projects provide a backlog where stories can be created and organized into sprints. ([Atlassian][1])
+
+---
+
+## Step 2: Create an Epic
+
+Create an Epic:
+
+```text
+Student Attendance Management
+```
+
+---
+
+## Step 3: Create User Stories
+
+Create these three stories:
+
+```text
+1. Add Student
+2. Mark Attendance
+3. View Attendance Report
+```
+
+Assign them to the Epic.
+
+Epics are used to group smaller user stories under a larger piece of work. ([Atlassian][2])
+
+---
+
+## Step 4: Create Sprint
+
+Go to:
+
+**Backlog → Create Sprint**
+
+Name:
+
+```text
+Sprint 1
+```
+
+Move the three stories into Sprint 1.
+
+Then click:
+
+**Start Sprint**
+
+Jira allows stories from the backlog to be added to a sprint and the sprint to be started from the backlog. ([Atlassian][3])
+
+---
+
+# Step 5: Map Scrum Ceremonies to DevOps
+
+| Scrum Ceremony       | DevOps Practice              |
+| -------------------- | ---------------------------- |
+| Sprint Planning      | Plan development work        |
+| Daily Stand-up       | Continuous communication     |
+| Sprint Review        | Continuous delivery/feedback |
+| Sprint Retrospective | Continuous improvement       |
+
+---
+
+# Step 6: Calculate DORA Metrics
+
+Use this sample data:
+
+| Metric                 | Sample value |
+| ---------------------- | -----------: |
+| Deployments            |           10 |
+| Successful deployments |            9 |
+| Average lead time      |       2 days |
+| Failed deployments     |            2 |
+| Average recovery time  |      4 hours |
+
+### 1. Deployment Frequency
+
+```text
+10 deployments / 1 week
+= 10 deployments per week
+```
+
+### 2. Lead Time for Changes
+
+```text
+Average = 2 days
+```
+
+### 3. Change Failure Rate
+
+```text
+2 / 10 × 100
+= 20%
+```
+
+### 4. Mean Time to Restore (MTTR)
+
+```text
+Average = 4 hours
+```
+
+---
+
+## Final DORA Results
+
+| DORA Metric           |      Result |
+| --------------------- | ----------: |
+| Deployment Frequency  | **10/week** |
+| Lead Time for Changes |  **2 days** |
+| Change Failure Rate   |     **20%** |
+| MTTR                  | **4 hours** |
+
