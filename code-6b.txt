@@ -1,0 +1,199 @@
+# Experiment 6(b) — GitHub Actions with Pytest Coverage
+
+## Aim
+
+To create a **GitHub Actions CI workflow** that automatically builds and tests a Python application on every **Pull Request**, checks that test coverage is **above 80%**, and reports the coverage in the Pull Request.
+
+---
+
+## Requirements
+
+* GitHub account
+* GitHub repository
+* Python
+* `pytest`
+* `pytest-cov`
+
+---
+
+# Procedure
+
+### Step 1: Create a simple Python application
+
+Create `app.py`:
+
+```python
+def add(a, b):
+    return a + b
+
+def subtract(a, b):
+    return a - b
+```
+
+Create `test_app.py`:
+
+```python
+from app import add, subtract
+
+def test_add():
+    assert add(2, 3) == 5
+
+def test_subtract():
+    assert subtract(5, 2) == 3
+```
+
+---
+
+### Step 2: Create GitHub Actions workflow
+
+Inside your repository, create:
+
+```text
+.github/
+└── workflows/
+    └── python-ci.yml
+```
+
+Put:
+
+```yaml
+name: Python CI
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        run: pytest --cov=. --cov-fail-under=80
+
+      - name: Coverage report
+        run: pytest --cov=. --cov-report=term
+```
+
+---
+
+# What does this do?
+
+The workflow runs automatically when someone creates or updates a **Pull Request**.
+
+```text
+Pull Request
+     ↓
+GitHub Actions
+     ↓
+Checkout
+     ↓
+Install Python packages
+     ↓
+Run pytest
+     ↓
+Check coverage ≥ 80%
+     ↓
+Success / Failure
+```
+
+The important command is:
+
+```bash
+pytest --cov=. --cov-fail-under=80
+```
+
+It means:
+
+> Run the tests and **fail the workflow if coverage is below 80%**.
+
+---
+
+# Step 3: Push the files
+
+```bash
+git add .
+git commit -m "Add Python CI workflow"
+git push
+```
+
+Then create a **Pull Request** on GitHub.
+
+Go to:
+
+**GitHub → Pull Request → Checks / Actions**
+
+You should see the workflow running.
+
+---
+
+# Expected Output
+
+GitHub Actions should show:
+
+```text
+✓ Checkout
+✓ Setup Python
+✓ Install dependencies
+✓ Run tests with coverage
+✓ Coverage report
+```
+
+Example:
+
+```text
+2 passed
+
+TOTAL    100%
+```
+
+Since:
+
+```text
+100% > 80%
+```
+
+the workflow succeeds.
+
+```text
+✓ Python CI
+```
+
+---
+
+## If coverage is below 80%
+
+For example:
+
+```text
+TOTAL    65%
+```
+
+Then:
+
+```text
+65% < 80%
+```
+
+and the workflow **fails**.
+
+This satisfies the requirement:
+
+> **Fails if threshold is not met.**
+
+---
+
+# Result
+
+**Thus, a GitHub Actions workflow was successfully created to run Python unit tests on every Pull Request, calculate test coverage, enforce a minimum coverage of 80%, and report the result in the Pull Request.**
+
