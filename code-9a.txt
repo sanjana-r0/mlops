@@ -1,0 +1,396 @@
+Yes — **Question 9 has two parts, 9(a) and 9(b)**, and **9(a) itself has an OR option**.
+
+### What the OR means
+
+For **9(a)**, you can choose **either**:
+
+* **Option 1 — Blue-Green deployment using Nginx reverse proxy** ← **I recommend this because it directly matches the question**
+* **OR Option 2 — Install/configure a Jenkins CI/CD pipeline with your own scenario**
+
+So for the lab, we'll do:
+
+> **9(a) → Nginx Blue-Green deployment**
+> **9(b) → MLflow Model Registry**
+
+We'll keep both as simple as possible.
+
+---
+
+# 9(a) Blue-Green Deployment using Nginx
+
+## Aim
+
+To implement a **Blue-Green deployment** using two web containers and an **Nginx reverse proxy**, allowing traffic to be switched instantly between Version 1.0 (Blue) and Version 2.0 (Green).
+
+### Architecture
+
+```text
+                  Browser
+                     |
+                     | :80
+                     v
+              +--------------+
+              |    Nginx     |
+              | Reverse Proxy|
+              +--------------+
+                /          \
+               /            \
+              v              v
+        Blue :8081       Green :8082
+        Version 1.0      Version 2.0
+```
+
+We'll use Docker because it makes the practical very easy.
+
+---
+
+## Step 1 — Create a new project
+
+Create a folder:
+
+```text
+blue-green-demo
+```
+
+Inside it create:
+
+```text
+blue-green-demo/
+├── blue/
+│   └── index.html
+├── green/
+│   └── index.html
+└── nginx.conf
+```
+
+---
+
+# Step 2 — Create Blue version
+
+Inside `blue/index.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blue Version</title>
+</head>
+<body>
+    <h1>Version 1.0 (Blue)</h1>
+</body>
+</html>
+```
+
+---
+
+# Step 3 — Create Green version
+
+Inside `green/index.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Green Version</title>
+</head>
+<body>
+    <h1>Version 2.0 (Green)</h1>
+</body>
+</html>
+```
+
+---
+
+# Step 4 — Run the Blue container
+
+Open PowerShell inside the project folder.
+
+Run:
+
+```powershell
+docker run -d --name blue -p 8081:80 -v ${PWD}/blue:/usr/share/nginx/html nginx:alpine
+```
+
+Check:
+
+```powershell
+docker ps
+```
+
+You should see Blue running on:
+
+```text
+localhost:8081
+```
+
+Open:
+
+```text
+http://localhost:8081
+```
+
+You should get:
+
+> **Version 1.0 (Blue)**
+
+---
+
+# Step 5 — Run the Green container
+
+Run:
+
+```powershell
+docker run -d --name green -p 8082:80 -v ${PWD}/green:/usr/share/nginx/html nginx:alpine
+```
+
+Check:
+
+```powershell
+docker ps
+```
+
+Open:
+
+```text
+http://localhost:8082
+```
+
+You should get:
+
+> **Version 2.0 (Green)**
+
+So now:
+
+| Container | Port | Version     |
+| --------- | ---: | ----------- |
+| Blue      | 8081 | Version 1.0 |
+| Green     | 8082 | Version 2.0 |
+
+---
+
+# Step 6 — Create Nginx configuration
+
+Create `nginx.conf`:
+
+```nginx
+events {}
+
+http {
+
+    upstream web_service {
+        server host.docker.internal:8081;
+    }
+
+    server {
+        listen 80;
+
+        location / {
+            proxy_pass http://web_service;
+        }
+    }
+}
+```
+
+### Important
+
+This part:
+
+```nginx
+upstream web_service {
+    server host.docker.internal:8081;
+}
+```
+
+means:
+
+> Send traffic to **Blue**.
+
+Nginx supports configuration reload through `nginx -s reload`, so changes can be applied without restarting the server. ([Nginx][1])
+
+---
+
+# Step 7 — Start Nginx
+
+Run:
+
+```powershell
+docker run -d --name nginx-proxy -p 80:80 -v ${PWD}/nginx.conf:/etc/nginx/nginx.conf:ro nginx:alpine
+```
+
+Check:
+
+```powershell
+docker ps
+```
+
+You should now have:
+
+```text
+blue          8081
+green         8082
+nginx-proxy   80
+```
+
+---
+
+# Step 8 — Test Blue through Nginx
+
+Open:
+
+```text
+http://localhost
+```
+
+You should see:
+
+> **Version 1.0 (Blue)**
+
+This proves:
+
+```text
+Browser → Nginx :80 → Blue :8081
+```
+
+---
+
+# Step 9 — Switch to Green
+
+Now edit `nginx.conf`.
+
+Change:
+
+```nginx
+server host.docker.internal:8081;
+```
+
+to:
+
+```nginx
+server host.docker.internal:8082;
+```
+
+So the configuration becomes:
+
+```nginx
+events {}
+
+http {
+
+    upstream web_service {
+        server host.docker.internal:8082;
+    }
+
+    server {
+        listen 80;
+
+        location / {
+            proxy_pass http://web_service;
+        }
+    }
+}
+```
+
+---
+
+# Step 10 — Reload Nginx
+
+Run:
+
+```powershell
+docker exec nginx-proxy nginx -s reload
+```
+
+That's the important command from the question.
+
+Nginx's `reload` signal makes it validate the new configuration and apply it while continuing to serve traffic. ([Nginx][1])
+
+---
+
+# Step 11 — Verify Green
+
+Open:
+
+```text
+http://localhost
+```
+
+Now you should see:
+
+> **Version 2.0 (Green)**
+
+So we achieved:
+
+```text
+Before:
+
+Browser
+   |
+ Nginx
+   |
+ Blue :8081
+   |
+Version 1.0
+
+
+After reload:
+
+Browser
+   |
+ Nginx
+   |
+ Green :8082
+   |
+Version 2.0
+```
+
+### That's the Blue-Green deployment. ✅
+
+---
+
+# Commands to remember for 9(a)
+
+You don't need to memorize everything.
+
+### Start Blue
+
+```powershell
+docker run -d --name blue -p 8081:80 -v ${PWD}/blue:/usr/share/nginx/html nginx:alpine
+```
+
+### Start Green
+
+```powershell
+docker run -d --name green -p 8082:80 -v ${PWD}/green:/usr/share/nginx/html nginx:alpine
+```
+
+### Start Nginx
+
+```powershell
+docker run -d --name nginx-proxy -p 80:80 -v ${PWD}/nginx.conf:/etc/nginx/nginx.conf:ro nginx:alpine
+```
+
+### Switch version
+
+Change:
+
+```text
+8081 → 8082
+```
+
+in `nginx.conf`.
+
+### Reload
+
+```powershell
+docker exec nginx-proxy nginx -s reload
+```
+
+### Verify
+
+```text
+http://localhost
+```
+
+---
+
+
