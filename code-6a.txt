@@ -1,4 +1,4 @@
-
+Scenario: Developers frequently commit code, and they expect the continuous integration server to automatically build a verified Docker container on every update. You must build this pipeline in Jenkins.
 # Experiment 6(a) — Jenkins Docker CI Pipeline
 
 ## Aim
