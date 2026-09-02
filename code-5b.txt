@@ -1,0 +1,280 @@
+# Experiment 5(b) – Jenkins CI/CD Pipeline
+
+## Aim
+
+To create a **declarative Jenkins CI/CD pipeline** with five stages:
+
+**Checkout → Install Dependencies → Unit Tests → Static Analysis → Deploy to Staging**
+
+and trigger the pipeline automatically whenever code is pushed to the **main** branch using a GitHub webhook.
+
+---
+
+## Requirements
+
+* Jenkins
+* Git and GitHub account
+* Python
+* `pytest`
+* `flake8`
+* VS Code (optional)
+
+---
+
+# Procedure
+
+### Step 1: Create a Python project
+
+Create a GitHub repository, for example:
+
+```text
+jenkins-python-demo
+```
+
+Clone it in VS Code:
+
+```bash
+git clone <repository-url>
+cd jenkins-python-demo
+```
+
+---
+
+### Step 2: Create Python file
+
+Create `app.py`:
+
+```python
+def add(a, b):
+    return a + b
+```
+
+---
+
+### Step 3: Create test file
+
+Create `test_app.py`:
+
+```python
+from app import add
+
+def test_add():
+    assert add(2, 3) == 5
+```
+
+---
+
+### Step 4: Create requirements file
+
+Create `requirements.txt`:
+
+```text
+pytest
+flake8
+```
+
+---
+
+# Step 5: Create Jenkinsfile
+
+Create a file named:
+
+```text
+Jenkinsfile
+```
+
+Use:
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Deps') {
+            steps {
+                bat 'pip install -r requirements.txt'
+            }
+        }
+
+        stage('Run Unit Tests') {
+            steps {
+                bat 'pytest'
+            }
+        }
+
+        stage('Static Analysis') {
+            steps {
+                bat 'flake8 app.py'
+            }
+        }
+
+        stage('Deploy to Staging') {
+            steps {
+                bat 'echo Deployment to staging successful'
+            }
+        }
+    }
+}
+```
+
+### Easy meaning
+
+| Stage               | What it does                     |
+| ------------------- | -------------------------------- |
+| **Checkout**        | Gets code from GitHub            |
+| **Install Deps**    | Installs pytest and flake8       |
+| **Unit Tests**      | Checks whether code works        |
+| **Static Analysis** | Checks code quality using flake8 |
+| **Deploy**          | Simulates deployment to staging  |
+
+For this lab, **Deploy is only demonstrated using `echo`**. We don't need an actual cloud server.
+
+---
+
+# Step 6: Push the project
+
+```bash
+git add .
+git commit -m "Add Jenkins pipeline"
+git push
+```
+
+---
+
+# Step 7: Configure Jenkins
+
+In Jenkins:
+
+**New Item → Pipeline**
+
+Give it a name:
+
+```text
+Python-CI-CD
+```
+
+Select:
+
+**Pipeline script from SCM**
+
+Then:
+
+```text
+SCM → Git
+```
+
+Enter your GitHub repository URL.
+
+Branch:
+
+```text
+*/main
+```
+
+Script Path:
+
+```text
+Jenkinsfile
+```
+
+Click **Save**.
+
+---
+
+# Step 8: Configure GitHub Webhook
+
+In your GitHub repository:
+
+**Settings → Webhooks → Add webhook**
+
+For the payload URL, use:
+
+```text
+http://YOUR-JENKINS-IP/github-webhook/
+```
+
+Select:
+
+```text
+Content type: application/json
+```
+
+Choose:
+
+```text
+Just the push event
+```
+
+Click:
+
+**Add webhook**
+
+In Jenkins, enable:
+
+**GitHub hook trigger for GITScm polling**
+
+Now whenever you push to `main`:
+
+```text
+Git push
+   ↓
+GitHub Webhook
+   ↓
+Jenkins
+   ↓
+Checkout
+   ↓
+Install Dependencies
+   ↓
+Pytest
+   ↓
+Flake8
+   ↓
+Deploy
+```
+
+---
+
+# Output
+
+After a successful build, Jenkins should show:
+
+```text
+Checkout                 ✓
+Install Deps             ✓
+Run Unit Tests            ✓
+Static Analysis           ✓
+Deploy to Staging         ✓
+```
+
+Important outputs:
+
+```text
+1 passed
+```
+
+and:
+
+```text
+Deployment to staging successful
+```
+
+Finally:
+
+```text
+Finished: SUCCESS
+```
+
+---
+
+# Result
+
+**Thus, a declarative Jenkins CI/CD pipeline with five stages—Checkout, Install Dependencies, Unit Testing, Static Analysis, and Deployment to Staging—was successfully created and configured to trigger automatically through a GitHub webhook on every push to the main branch.**
+
