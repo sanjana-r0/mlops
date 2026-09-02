@@ -1,0 +1,120 @@
+# 12. Git Feature Branch — Student Search
+
+## Aim
+
+To implement a new **Student Search** feature using a separate Git branch and push the changes to GitHub.
+
+## Procedure
+
+### Step 1: Clone the repository
+
+```powershell
+git clone https://github.com/YOUR_USERNAME/student-attendance-system.git
+cd student-attendance-system
+```
+
+### Step 2: Check current branch
+
+```powershell
+git branch
+```
+
+Expected:
+
+```text
+* main
+```
+
+### Step 3: Create and switch to feature branch
+
+```powershell
+git switch -c feature/student-search
+```
+
+Check:
+
+```powershell
+git branch
+```
+
+Expected:
+
+```text
+* feature/student-search
+  main
+```
+
+`git switch -c` creates the new branch and switches to it. ([Git][1])
+
+### Step 4: Create/modify Python file
+
+Create `student_search.py`:
+
+```python
+students = ["Arun", "Rahul", "Priya", "Anu"]
+
+def search_student(name):
+    return [s for s in students if name.lower() in s.lower()]
+```
+
+### Step 5: Check modified files
+
+```powershell
+git status
+```
+
+You should see:
+
+```text
+Untracked files:
+    student_search.py
+```
+
+### Step 6: Stage the changes
+
+```powershell
+git add student_search.py
+```
+
+Check:
+
+```powershell
+git status
+```
+
+It should show the file as **Changes to be committed**.
+
+### Step 7: Commit
+
+```powershell
+git commit -m "Add student search feature"
+```
+
+### Step 8: Push branch to GitHub
+
+```powershell
+git push -u origin feature/student-search
+```
+
+The `-u` sets the remote branch as the upstream for this new local branch; after that, a normal `git push` can be used on subsequent pushes. ([Git][2])
+
+### Step 9: Verify
+
+```powershell
+git branch
+```
+
+and:
+
+```powershell
+git status
+```
+
+You should be on:
+
+```text
+feature/student-search
+```
+
+
+
