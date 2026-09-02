@@ -1,0 +1,320 @@
+# 14(b) Ansible — 3 Roles
+b.Write an Ansible Playbook with 3 roles: common (Python 3.11, pip, git, Docker), mlflow (deploy MLflow as a systemd service on port 5000), dvc (install DVC, configure S3 remote). Run against the EC2 from Exp 13. Verify services with systemctl status.
+We'll make this **as basic as possible but actually runnable** against the EC2 instance from 13(a).
+
+The three roles will be:
+
+common → Python 3.11, pip, Git, Docker
+mlflow → MLflow systemd service on port 5000
+dvc    → DVC + S3 remote
+
+## Step 1: Install Ansible
+
+On your **Ansible/controller machine**:
+
+```bash
+pip install ansible
+```
+
+Check:
+
+```bash
+ansible --version
+```
+
+---
+
+## Step 2: Create project
+
+```text
+ansible-ml/
+├── inventory
+├── playbook.yml
+└── roles/
+    ├── common/
+    │   └── tasks/
+    │       └── main.yml
+    ├── mlflow/
+    │   ├── tasks/
+    │   │   └── main.yml
+    │   └── templates/
+    │       └── mlflow.service.j2
+    └── dvc/
+        └── tasks/
+            └── main.yml
+```
+
+---
+
+# Step 3: `inventory`
+
+Replace `YOUR_EC2_IP` with the **public IP from Experiment 13**.
+
+Replace the key path with your `.pem` file.
+
+```ini
+[mlserver]
+YOUR_EC2_IP ansible_user=ubuntu ansible_ssh_private_key_file=student-key.pem
+```
+
+Test connection:
+
+```bash
+ansible all -i inventory -m ping
+```
+
+Expected:
+
+```text
+SUCCESS
+"ping": "pong"
+```
+
+---
+
+# Step 4: Common Role
+
+Create:
+
+```text
+roles/common/tasks/main.yml
+```
+
+```yaml
+---
+- name: Update packages
+  apt:
+    update_cache: yes
+
+- name: Install Python, pip, Git and Docker
+  apt:
+    name:
+      - python3.11
+      - python3-pip
+      - git
+      - docker.io
+    state: present
+
+- name: Start Docker
+  service:
+    name: docker
+    state: started
+    enabled: yes
+```
+
+---
+
+# Step 5: MLflow Role
+
+Create:
+
+```text
+roles/mlflow/tasks/main.yml
+```
+
+```yaml
+---
+- name: Install MLflow
+  pip:
+    name: mlflow
+    executable: pip3
+
+- name: Create MLflow service
+  template:
+    src: mlflow.service.j2
+    dest: /etc/systemd/system/mlflow.service
+
+- name: Start MLflow
+  systemd:
+    name: mlflow
+    state: started
+    enabled: yes
+    daemon_reload: yes
+```
+
+Create:
+
+```text
+roles/mlflow/templates/mlflow.service.j2
+```
+
+```ini
+[Unit]
+Description=MLflow Server
+After=network.target
+
+[Service]
+User=root
+ExecStart=/usr/local/bin/mlflow server --host 0.0.0.0 --port 5000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+# Step 6: DVC Role
+
+Create:
+
+```text
+roles/dvc/tasks/main.yml
+```
+
+```yaml
+---
+- name: Install DVC with S3 support
+  pip:
+    name: "dvc[s3]"
+    executable: pip3
+
+- name: Configure DVC S3 remote
+  shell: |
+    mkdir -p /opt/ml-project
+    cd /opt/ml-project
+    dvc init --no-scm
+    dvc remote add -d storage s3://YOUR-S3-BUCKET/models
+  args:
+    creates: /opt/ml-project/.dvc/config
+```
+
+Replace:
+
+```text
+YOUR-S3-BUCKET
+```
+
+with the **S3 model bucket you created in Experiment 13**.
+
+---
+
+# Step 7: Create `playbook.yml`
+
+```yaml
+---
+- name: Configure ML EC2 Server
+  hosts: mlserver
+  become: yes
+
+  roles:
+    - common
+    - mlflow
+    - dvc
+```
+
+That's the main Ansible playbook.
+
+---
+
+# Step 8: Run Ansible
+
+First check the playbook:
+
+```bash
+ansible-playbook -i inventory playbook.yml --check
+```
+
+Then actually run it:
+
+```bash
+ansible-playbook -i inventory playbook.yml
+```
+
+You should eventually see:
+
+```text
+PLAY RECAP
+...
+failed=0
+```
+
+---
+
+# Step 9: Verify MLflow
+
+SSH into the EC2:
+
+```bash
+ssh -i student-key.pem ubuntu@YOUR_EC2_IP
+```
+
+Check:
+
+```bash
+systemctl status mlflow
+```
+
+Expected:
+
+```text
+Active: active (running)
+```
+
+Also:
+
+```bash
+curl http://localhost:5000
+```
+
+---
+
+# Step 10: Verify Docker
+
+```bash
+systemctl status docker
+```
+
+Expected:
+
+```text
+Active: active (running)
+```
+
+---
+
+# Step 11: Verify DVC
+
+```bash
+dvc --version
+```
+
+Then:
+
+```bash
+cd /opt/ml-project
+dvc remote list
+```
+
+Expected:
+
+```text
+storage    s3://YOUR-S3-BUCKET/models
+```
+
+---
+
+## Important commands
+
+```bash
+ansible all -i inventory -m ping
+```
+
+```bash
+ansible-playbook -i inventory playbook.yml
+```
+
+On EC2:
+
+```bash
+systemctl status mlflow
+systemctl status docker
+dvc --version
+dvc remote list
+```
+
+## Result
+
+Successfully automated EC2 configuration using Ansible with three roles: **common** for Python, pip, Git and Docker; **mlflow** for deploying MLflow as a systemd service on port 5000; and **dvc** for installing DVC and configuring an S3 remote. The services were verified using `systemctl status`.
+
+[1]: https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/apt_module.html?utm_source=chatgpt.com "ansible.builtin.apt module – Manages apt-packages — Ansible Community Documentation"
