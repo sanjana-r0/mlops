@@ -1,0 +1,298 @@
+Q) Terraform provisions a Kubernetes cluster (EKS or Minikube). Ansible deploys the ML stack: ConfigMap for model config, Deployment with 2 replicas of the FastAPI container (Exp 10), Service on port 8000. End-to-end: terraform apply → ansible-playbook → kubectl get pods → curl /predict.
+
+Yes. We'll use **Minikube**, because it is much simpler than EKS for a lab and avoids AWS costs.
+
+# 13(b) Terraform + Ansible + Kubernetes
+
+## Aim
+
+To provision a Minikube Kubernetes cluster using Terraform and deploy the FastAPI ML application from Experiment 10 using Ansible with a ConfigMap, Deployment with 2 replicas, and Service on port 8000.
+
+---
+
+## Step 1: Requirements
+
+Install/check:
+
+```powershell
+terraform --version
+minikube version
+kubectl version --client
+ansible --version
+docker --version
+```
+
+Also make sure **Docker Desktop is running**.
+
+---
+
+# Step 2: Create project
+
+Create:
+
+```text
+k8s-ml/
+├── main.tf
+├── inventory
+├── deploy.yml
+├── configmap.yml
+├── deployment.yml
+└── service.yml
+```
+
+---
+
+# Step 3: Terraform — `main.tf`
+
+```hcl
+resource "null_resource" "minikube" {
+
+  provisioner "local-exec" {
+    command = "minikube start --driver=docker"
+  }
+}
+```
+
+This uses Terraform to start the local Minikube cluster.
+
+---
+
+# Step 4: Run Terraform
+
+```powershell
+terraform init
+```
+
+Then:
+
+```powershell
+terraform apply
+```
+
+Enter:
+
+```text
+yes
+```
+
+Check:
+
+```powershell
+kubectl get nodes
+```
+
+Expected:
+
+```text
+NAME       STATUS   ROLES           ...
+minikube   Ready    control-plane   ...
+```
+
+Terraform can work with Kubernetes resources once a cluster is available; Minikube automatically configures `kubectl` when started. ([Terraform Registry][1])
+
+---
+
+# Step 5: Make Exp 10 Docker image available
+
+Make sure you already have the FastAPI image from Experiment 10:
+
+```powershell
+docker images
+```
+
+You should have:
+
+```text
+fastapi-ml
+```
+
+Load it into Minikube:
+
+```powershell
+minikube image load fastapi-ml
+```
+
+---
+
+# Step 6: Create ConfigMap
+
+Create `configmap.yml`:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-config
+data:
+  MODEL_VERSION: "1.0"
+```
+
+---
+
+# Step 7: Create Deployment
+
+Create `deployment.yml`:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-ml
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fastapi-ml
+  template:
+    metadata:
+      labels:
+        app: fastapi-ml
+    spec:
+      containers:
+        - name: fastapi
+          image: fastapi-ml
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: model-config
+```
+
+The `replicas: 2` ensures that Kubernetes maintains two pods. ([Terraform Registry][2])
+
+---
+
+# Step 8: Create Service
+
+Create `service.yml`:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-service
+spec:
+  selector:
+    app: fastapi-ml
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: NodePort
+```
+
+---
+
+# Step 9: Create Ansible inventory
+
+Create `inventory`:
+
+```ini
+[local]
+localhost ansible_connection=local
+```
+
+We are using Ansible locally to deploy into Minikube.
+
+---
+
+# Step 10: Create Ansible Playbook
+
+Create `deploy.yml`:
+
+```yaml
+---
+- name: Deploy FastAPI ML Stack
+  hosts: local
+
+  tasks:
+
+    - name: Create ConfigMap
+      command: kubectl apply -f configmap.yml
+
+    - name: Create Deployment
+      command: kubectl apply -f deployment.yml
+
+    - name: Create Service
+      command: kubectl apply -f service.yml
+```
+
+---
+
+# Step 11: Run Ansible
+
+```powershell
+ansible-playbook -i inventory deploy.yml
+```
+
+Expected:
+
+```text
+PLAY RECAP
+localhost    : ok=3    changed=3    failed=0
+```
+
+---
+
+# Step 12: Check Pods
+
+```powershell
+kubectl get pods
+```
+
+Expected:
+
+```text
+fastapi-ml-xxxxx   1/1   Running
+fastapi-ml-xxxxx   1/1   Running
+```
+
+Two pods = **2 replicas**.
+
+Also check:
+
+```powershell
+kubectl get service
+```
+
+You should see:
+
+```text
+fastapi-service
+```
+
+---
+
+# Step 13: Get Service URL
+
+Run:
+
+```powershell
+minikube service fastapi-service --url
+```
+
+It will give something like:
+
+```text
+http://127.0.0.1:xxxxx
+```
+
+Copy that URL.
+
+---
+
+# Step 14: Test `/predict`
+
+Use the URL returned above:
+
+```powershell
+curl.exe -X POST http://127.0.0.1:xxxxx/predict -H "Content-Type: application/json" -d "{\"value\":5}"
+```
+
+Expected:
+
+```json
+{"prediction":1,"confidence":0.XX}
+```
+
+
