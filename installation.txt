@@ -1,0 +1,254 @@
+Step 1 — Check first
+
+Open Command Prompt:
+
+git --version
+Step 2 — Download Git
+
+Open your browser and search:
+
+Git for Windows
+
+Use the official site:
+
+git-scm.com
+
+Look for:
+
+Download for Windows
+
+Download the 64-bit installer.
+Step 3 — Install Git
+
+Double-click the .exe.
+
+You'll get the Git installation wizard.
+
+For your experiment, the default options are fine.
+If Git is installed but command isn't recognized
+
+Try:
+
+where git
+
+If it returns something like:
+
+C:\Program Files\Git\cmd\git.exe
+
+Git exists but your PATH hasn't refreshed.
+
+3️⃣ Download Java
+
+For a simple lab setup, use an LTS JDK distribution such as Eclipse Temurin.
+
+Search:
+
+Eclipse Temurin JDK Windows
+
+Go to the official Adoptium website.
+
+Choose:
+
+Operating System: Windows
+Architecture: x64
+Package: JDK
+Version: LTS
+
+Download the .msi installer.
+4️⃣ Install Java
+
+Run the .msi.
+
+During installation, make sure the options to add Java to PATH / set JAVA_HOME are enabled if offered.
+
+Then complete installation.
+
+5️⃣ Verify Java
+
+Close CMD.
+
+Open a new CMD:
+
+java -version
+
+6️⃣ INSTALL DOCKER DESKTOP
+
+This is the most important installation for your experiment.
+
+First check
+docker --version
+
+If you already have:
+
+Docker version ...
+
+don't reinstall.
+
+Then check:
+
+docker info
+
+If Docker information appears → Docker is working.
+
+If Docker isn't found → install it.
+
+8️⃣ Install Docker Desktop
+
+Run the installer.
+
+You'll see options related to:
+
+WSL 2
+Desktop shortcut
+Windows components
+IMPORTANT
+
+If the installer recommends:
+
+Use WSL 2 instead of Hyper-V
+
+keep WSL 2 enabled/recommended.
+
+Complete the installation.
+
+You may get something like:
+
+error during connect
+
+or:
+
+The system cannot find the file specified
+
+Usually:
+
+Docker Desktop isn't running.
+
+Open:
+
+Start Menu
+→ Docker Desktop
+
+Wait until it finishes starting.
+
+Then:
+
+docker info
+
+🚨 Docker problem #3 — WSL error
+
+This is very possible on college computers.
+
+You might see something involving:
+
+WSL 2
+Virtual Machine Platform
+virtualization
+
+First check:
+
+wsl --status
+
+And:
+
+wsl --version
+
+If WSL isn't installed/enabled, Docker Desktop may not work correctly.
+
+If you have administrator access
+
+Windows features can be enabled through:
+
+wsl --install
+
+1️⃣1️⃣ CHECK DOCKER COMPOSE
+
+Good news:
+
+You normally don't install Docker Compose separately.
+
+Modern Docker Desktop includes Compose.
+
+Run:
+
+docker compose version
+
+4. Jenkins — DIRECT WINDOWS INSTALLATION
+
+This is the part you specifically want. 👍
+
+Google:
+
+Jenkins download
+
+Make sure you go to:
+
+jenkins.io
+
+Then:
+
+Download → Windows
+
+Jenkins provides a Windows installer (.msi).
+
+Download the Windows installer.
+
+It'll look approximately like:
+
+jenkins.msi
+
+or have a version number in the filename.
+
+5. Run the Jenkins installer
+
+Double-click the .msi.
+
+The Jenkins setup wizard will open.
+
+You'll go through something roughly like:
+
+Jenkins Setup
+     ↓
+Destination folder
+     ↓
+Service Logon Type
+     ↓
+Port
+     ↓
+Java
+     ↓
+Install
+Important: Jenkins service
+
+Jenkins will normally be installed as a Windows service.
+
+That's what we want.
+
+So after installation, Jenkins can run in the background rather than you having to manually execute a .war file every time.
+
+6. Jenkins will ask for Java
+
+This is why we're installing Java before Jenkins.
+
+The installer should detect your Java installation.
+
+If it asks for the Java executable, it may look something like:
+
+C:\Program Files\Eclipse Adoptium\jdk-21...\bin\java.exe
+
+Select the appropriate Java installation.
+
+7. Jenkins port
+
+You'll probably see:
+
+8080
+
+Leave it as:
+
+8080
+
+unless the installer says the port is already being used.
+
+After installation, Jenkins should be accessible at:
+
+http://localhost:8080
