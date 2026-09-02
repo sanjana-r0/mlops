@@ -1,12 +1,4 @@
-Yes — **Question 9 has two parts, 9(a) and 9(b)**, and **9(a) itself has an OR option**.
-
-### What the OR means
-
-For **9(a)**, you can choose **either**:
-
-* **Option 1 — Blue-Green deployment using Nginx reverse proxy** ← **I recommend this because it directly matches the question**
-* **OR Option 2 — Install/configure a Jenkins CI/CD pipeline with your own scenario**
-
+. Scenario: To eliminate deployment downtime, MLOps engineers employ Blue-Green deployments. You must configure an Nginx reverse proxy to perform a quick switch between two live versions.
 So for the lab, we'll do:
 
 > **9(a) → Nginx Blue-Green deployment**
