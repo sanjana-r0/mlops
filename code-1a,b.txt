@@ -1,0 +1,224 @@
+# 1(a) Git — `git add` vs `git commit`
+
+## Aim
+
+To understand the difference between staging and committing changes in Git.
+
+### Difference
+
+* `git add` → moves changes to the **staging area**.
+* `git commit` → permanently records the **staged changes** in Git history.
+* `git diff` → shows line-by-line changes **before staging**. ([Git][1])
+
+## Commands
+
+### a) Check workspace status
+
+```powershell
+git status
+```
+
+### b) Stage `index.html`
+
+```powershell
+git add index.html
+```
+
+### c) Commit the staged changes
+
+```powershell
+git commit -m "Update student result page"
+```
+
+### d) View detailed changes before staging
+
+```powershell
+git diff
+```
+
+### Simple flow
+
+```text
+Modify file
+   ↓
+git diff
+   ↓
+git add index.html
+   ↓
+git commit -m "message"
+```
+
+## Result
+
+Successfully checked, staged, reviewed, and committed changes using Git.
+
+---
+
+# 1(b) Git + Docker + Jenkins
+
+## Aim
+
+To connect **GitHub, Jenkins, and Docker** by creating a Jenkins job that pulls code from GitHub and runs the application inside a Docker container.
+
+## Step 1: Install
+
+On Windows, install:
+
+* Git
+* Docker Desktop
+* Jenkins
+
+Since you've already used Jenkins and Docker in the previous experiments, you can **skip installation if they are already working**.
+
+Check:
+
+```powershell
+git --version
+docker --version
+```
+
+Jenkins can execute Docker commands from a Pipeline when Docker is available on the Jenkins agent. ([Jenkins][2])
+
+---
+
+## Step 2: Create simple project
+
+Create `index.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Hello from Jenkins and Docker!</h1>
+</body>
+</html>
+```
+
+Create `Dockerfile`:
+
+```dockerfile
+FROM nginx:alpine
+COPY index.html /usr/share/nginx/html/index.html
+EXPOSE 80
+```
+
+---
+
+## Step 3: Push to GitHub
+
+```powershell
+git init
+git add .
+git commit -m "Add web application"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git push -u origin main
+```
+
+---
+
+## Step 4: Create Jenkinsfile
+
+Create `Jenkinsfile`:
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                bat 'docker build -t student-web .'
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                bat 'docker rm -f student-web || exit 0'
+                bat 'docker run -d --name student-web -p 8080:80 student-web'
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                bat 'docker ps'
+            }
+        }
+    }
+}
+```
+
+---
+
+## Step 5: Push Jenkinsfile
+
+```powershell
+git add .
+git commit -m "Add Jenkins pipeline"
+git push
+```
+
+---
+
+## Step 6: Create Jenkins Job
+
+In Jenkins:
+
+**New Item → Pipeline**
+
+Select:
+
+```text
+Pipeline script from SCM
+```
+
+Choose:
+
+```text
+Git
+```
+
+Enter your GitHub repository URL.
+
+Branch:
+
+```text
+*/main
+```
+
+Script Path:
+
+```text
+Jenkinsfile
+```
+
+Save → **Build Now**.
+
+Jenkins supports loading a `Jenkinsfile` from source control and using Docker during Pipeline execution. ([Jenkins][3])
+
+---
+
+## Step 7: Verify
+
+After the build succeeds:
+
+```powershell
+docker ps
+```
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+You should see:
+
+**Hello from Jenkins and Docker!**
