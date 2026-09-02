@@ -1,4 +1,4 @@
-
+Scenario: Large Docker image sizes slow down container deployments in production. You must optimize a Node.js or Go application's container footprint using a Docker Multi-Stage build.
 # Experiment 5a — Docker Multi-Stage Build
 
 ## Aim
