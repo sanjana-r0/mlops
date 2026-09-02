@@ -1,0 +1,253 @@
+## Q4(b) GitFlow Branching + Merge Conflict + Release Tag
+
+**Aim:**
+Implement GitFlow branching with `main`, `develop`, `feature/user-auth`, `release/1.0`, and `hotfix/login-bug`, 
+  resolve a merge conflict, create a release tag, and push all branches to GitHub.
+
+Git uses `git merge` to combine branches, and conflicts occur when the same part of a file is changed differently. After resolving the file, `git add` marks it resolved and `git commit` completes the merge. ([Git][1])
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/college-management.git
+cd college-management
+```
+
+Check branches:
+
+```bash
+git branch -a
+```
+
+---
+
+### 2. Create `develop` branch from `main`
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b develop
+git push -u origin develop
+```
+
+Now we have:
+
+```text
+main
+develop
+```
+
+---
+
+### 3. Create `feature/user-auth`
+
+```bash
+git checkout develop
+git checkout -b feature/user-auth
+```
+
+Create a file **login.txt**:
+
+```text
+User authentication enabled
+```
+
+Then:
+
+```bash
+git add login.txt
+git commit -m "Add user authentication"
+git push -u origin feature/user-auth
+```
+
+---
+
+### 4. Deliberately create a merge conflict
+
+First go back to `develop`:
+
+```bash
+git checkout develop
+```
+
+Create the same `login.txt` file, but with different content:
+
+```text
+Login system updated in develop
+```
+
+Commit it:
+
+```bash
+git add login.txt
+git commit -m "Update login system"
+```
+
+Now go to the feature branch:
+
+```bash
+git checkout feature/user-auth
+```
+
+Merge `develop`:
+
+```bash
+git merge develop
+```
+
+You should get a **CONFLICT** because both branches changed the same file.
+
+---
+
+### 5. Resolve the conflict
+
+Open `login.txt`. Git will show something similar to:
+
+```text
+<<<<<<< HEAD
+User authentication enabled
+=======
+Login system updated in develop
+>>>>>>> develop
+```
+
+Replace it with the final desired content:
+
+```text
+User authentication enabled
+Login system updated in develop
+```
+
+Save the file.
+
+Then:
+
+```bash
+git add login.txt
+git commit -m "Resolve login merge conflict"
+```
+
+Check:
+
+```bash
+git status
+```
+
+The conflict is now resolved. ([Git][2])
+
+---
+
+### 6. Merge feature into develop
+
+```bash
+git checkout develop
+git merge feature/user-auth
+git push origin develop
+```
+
+---
+
+### 7. Create release branch
+
+```bash
+git checkout develop
+git checkout -b release/1.0
+git push -u origin release/1.0
+```
+
+Now branches include:
+
+```text
+main
+develop
+feature/user-auth
+release/1.0
+```
+
+---
+
+### 8. Create hotfix branch
+
+Create it from `main`:
+
+```bash
+git checkout main
+git checkout -b hotfix/login-bug
+```
+
+Modify `login.txt`:
+
+```text
+Login bug fixed
+```
+
+Then:
+
+```bash
+git add login.txt
+git commit -m "Fix login bug"
+git push -u origin hotfix/login-bug
+```
+
+---
+
+### 9. Merge hotfix into main
+
+```bash
+git checkout main
+git merge hotfix/login-bug
+```
+
+---
+
+### 10. Create release tag
+
+```bash
+git tag -a v1.0.0 -m "Release version 1.0"
+git push origin main
+git push origin --tags
+```
+
+---
+
+### 11. Merge hotfix into develop
+
+```bash
+git checkout develop
+git merge hotfix/login-bug
+git push origin develop
+```
+
+---
+
+### 12. Push all branches
+
+To ensure all local branches are pushed:
+
+```bash
+git push --all origin
+git push --tags origin
+```
+
+### Final branches
+
+```text
+main
+develop
+feature/user-auth
+release/1.0
+hotfix/login-bug
+```
+
+### Expected Output
+
+```text
+Merge conflict created
+Conflict resolved successfully
+Feature merged into develop
+Release branch created
+Hotfix branch created
+Tag v1.0.0 created
+All branches pushed to GitHub
+```
+
