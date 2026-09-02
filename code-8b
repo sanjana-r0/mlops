@@ -1,0 +1,637 @@
+
+# Experiment — DVC 3-Stage ML Pipeline
+
+## Aim
+
+To create a **three-stage DVC pipeline** consisting of **Prepare, Train, and Evaluate**, version two iterations of a dataset using **Git and DVC**, reproduce the pipeline using `dvc repro`, and compare metric changes using `dvc metrics diff`.
+
+---
+
+# Requirements
+
+* Python
+* VS Code
+* Git
+* GitHub account
+* DVC
+* pandas
+* scikit-learn
+
+Install DVC:
+
+```powershell
+pip install dvc
+```
+
+Install the ML libraries:
+
+```powershell
+pip install pandas scikit-learn
+```
+
+Check:
+
+```powershell
+dvc --version
+git --version
+```
+
+---
+
+# Part 1 — Create a New GitHub Repository
+
+Create a new GitHub repository.
+
+For example:
+
+```text
+dvc-student-project
+```
+
+I recommend creating it **with a README**.
+
+Then clone it:
+
+```powershell
+git clone https://github.com/YOUR_USERNAME/dvc-student-project.git
+```
+
+Go inside:
+
+```powershell
+cd dvc-student-project
+```
+
+Check:
+
+```powershell
+git branch
+```
+
+You should see:
+
+```text
+* main
+```
+
+---
+
+# Part 2 — Initialize DVC
+
+Inside the repository:
+
+```powershell
+dvc init
+```
+
+This creates DVC configuration files.
+
+Then:
+
+```powershell
+git add .
+git commit -m "Initialize DVC"
+git push
+```
+
+Now both Git and DVC are initialized.
+
+---
+
+# Part 3 — Create Project Structure
+
+Create:
+
+```text
+dvc-student-project/
+│
+├── data/
+│   └── raw/
+│       └── students.csv
+│
+├── src/
+│   ├── prepare.py
+│   ├── train.py
+│   └── evaluate.py
+│
+├── dvc.yaml
+└── README.md
+```
+
+Our pipeline will be:
+
+```text
+students.csv
+     ↓
+  PREPARE
+     ↓
+prepared.csv
+     ↓
+   TRAIN
+     ↓
+ model.pkl
+     ↓
+ EVALUATE
+     ↓
+metrics.json
+```
+
+---
+
+# Part 4 — Create Dataset
+
+Create:
+
+```text
+data/raw/students.csv
+```
+
+Put:
+
+```csv
+hours,attendance,score
+2,60,40
+3,65,45
+4,70,50
+5,75,55
+6,80,60
+7,85,65
+8,90,70
+9,92,75
+10,95,80
+```
+
+This is our **Version 1 dataset**.
+
+---
+
+# Part 5 — Prepare Stage
+
+Create:
+
+```text
+src/prepare.py
+```
+
+Put:
+
+```python
+import pandas as pd
+
+df = pd.read_csv("data/raw/students.csv")
+
+df["pass"] = (df["score"] >= 50).astype(int)
+
+df.to_csv("data/prepared.csv", index=False)
+
+print("Data preparation completed")
+```
+
+### What does it do?
+
+It reads:
+
+```text
+students.csv
+```
+
+and creates:
+
+```text
+prepared.csv
+```
+
+with a new `pass` column.
+
+---
+
+# Part 6 — Train Stage
+
+Create:
+
+```text
+src/train.py
+```
+
+Put:
+
+```python
+import pandas as pd
+import pickle
+
+from sklearn.linear_model import LogisticRegression
+
+df = pd.read_csv("data/prepared.csv")
+
+X = df[["hours", "attendance"]]
+y = df["pass"]
+
+model = LogisticRegression()
+model.fit(X, y)
+
+with open("model.pkl", "wb") as f:
+    pickle.dump(model, f)
+
+print("Model training completed")
+```
+
+This trains a simple Logistic Regression model.
+
+---
+
+# Part 7 — Evaluate Stage
+
+Create:
+
+```text
+src/evaluate.py
+```
+
+Put:
+
+```python
+import pandas as pd
+import pickle
+import json
+
+from sklearn.metrics import accuracy_score
+
+df = pd.read_csv("data/prepared.csv")
+
+X = df[["hours", "attendance"]]
+y = df["pass"]
+
+with open("model.pkl", "rb") as f:
+    model = pickle.load(f)
+
+pred = model.predict(X)
+
+accuracy = accuracy_score(y, pred)
+
+with open("metrics.json", "w") as f:
+    json.dump({"accuracy": accuracy}, f)
+
+print("Accuracy:", accuracy)
+```
+
+This produces:
+
+```text
+metrics.json
+```
+
+For example:
+
+```json
+{
+    "accuracy": 1.0
+}
+```
+
+---
+
+# Part 8 — Create `dvc.yaml`
+
+This is the **main file** that defines our three-stage pipeline.
+
+Create:
+
+```text
+dvc.yaml
+```
+
+Put:
+
+```yaml
+stages:
+
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+      - src/prepare.py
+      - data/raw/students.csv
+    outs:
+      - data/prepared.csv
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - data/prepared.csv
+    outs:
+      - model.pkl
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - src/evaluate.py
+      - data/prepared.csv
+      - model.pkl
+    metrics:
+      - metrics.json
+```
+
+Now DVC understands:
+
+```text
+prepare
+   ↓
+train
+   ↓
+evaluate
+```
+
+---
+
+# Part 9 — Add Dataset to DVC
+
+Run:
+
+```powershell
+dvc add data/raw/students.csv
+```
+
+DVC will create:
+
+```text
+data/raw/students.csv.dvc
+```
+
+The actual dataset is now tracked by DVC rather than Git.
+
+Then:
+
+```powershell
+git add .
+git commit -m "Add student dataset"
+git push
+```
+
+---
+
+# Part 10 — Run the Pipeline
+
+Now run:
+
+```powershell
+dvc repro
+```
+
+DVC will execute:
+
+```text
+Running stage 'prepare'
+Running stage 'train'
+Running stage 'evaluate'
+```
+
+You should see:
+
+```text
+Data preparation completed
+Model training completed
+Accuracy: ...
+```
+
+---
+
+# Part 11 — Check Metrics
+
+Run:
+
+```powershell
+dvc metrics show
+```
+
+You should get something similar to:
+
+```text
+Path          accuracy
+metrics.json  1.0
+```
+
+The exact value depends on your dataset.
+
+---
+
+# Part 12 — Commit Version 1
+
+Now save the first pipeline version:
+
+```powershell
+git add .
+git commit -m "Version 1 dataset and pipeline"
+git push
+```
+
+Now **Version 1 is safely recorded in Git**.
+
+---
+
+# Part 13 — Create Dataset Version 2
+
+Now modify:
+
+```text
+data/raw/students.csv
+```
+
+For example, add a few more students:
+
+```csv
+11,96,82
+12,97,88
+1,55,35
+```
+
+So the dataset has changed.
+
+Then run:
+
+```powershell
+dvc add data/raw/students.csv
+```
+
+Now reproduce the pipeline:
+
+```powershell
+dvc repro
+```
+
+Because the dataset changed, DVC detects the dependency change and reruns the necessary stages.
+
+You should see something like:
+
+```text
+Stage 'prepare' changed
+Stage 'train' changed
+Stage 'evaluate' changed
+
+Data preparation completed
+Model training completed
+Accuracy: ...
+```
+
+---
+
+# Part 14 — Compare Version 1 and Version 2
+
+First commit Version 2:
+
+```powershell
+git add .
+git commit -m "Update dataset to version 2"
+git push
+```
+
+Now use:
+
+```powershell
+dvc metrics diff HEAD~1 HEAD
+```
+
+This compares the metrics between the previous Git commit and the current commit.
+
+You may see something like:
+
+```text
+Path          Metric     HEAD~1    HEAD
+metrics.json  accuracy   1.00      0.92
+```
+
+The actual values will depend on the dataset.
+
+This demonstrates:
+
+> **Dataset changed → Pipeline reproduced → Metrics changed → Git/DVC versions compared**
+
+---
+
+# Important Commands
+
+These are the commands you should remember for the practical:
+
+### Initialize
+
+```powershell
+dvc init
+```
+
+### Track dataset
+
+```powershell
+dvc add data/raw/students.csv
+```
+
+### Run pipeline
+
+```powershell
+dvc repro
+```
+
+### Show metrics
+
+```powershell
+dvc metrics show
+```
+
+### Compare versions
+
+```powershell
+dvc metrics diff HEAD~1 HEAD
+```
+
+### Git
+
+```powershell
+git add .
+git commit -m "message"
+git push
+```
+
+---
+
+# Final Pipeline
+
+Your complete setup is:
+
+```text
+        students.csv
+             │
+             ▼
+       ┌───────────┐
+       │  PREPARE  │
+       └───────────┘
+             │
+             ▼
+      prepared.csv
+             │
+             ▼
+       ┌───────────┐
+       │   TRAIN   │
+       └───────────┘
+             │
+             ▼
+         model.pkl
+             │
+             ▼
+       ┌───────────┐
+       │ EVALUATE  │
+       └───────────┘
+             │
+             ▼
+       metrics.json
+```
+
+DVC tracks the dependencies/outputs of these stages, while Git records the pipeline and dataset-version metadata. `dvc repro` is then used to reproduce the pipeline. ([Docker Documentation][1])
+
+---
+
+# Expected Output
+
+### Version 1
+
+```text
+Running stage 'prepare'
+Running stage 'train'
+Running stage 'evaluate'
+
+Data preparation completed
+Model training completed
+Accuracy: 1.0
+```
+
+### Version 2
+
+After changing the dataset:
+
+```text
+Running stage 'prepare'
+Running stage 'train'
+Running stage 'evaluate'
+
+Data preparation completed
+Model training completed
+Accuracy: 0.92
+```
+
+Then:
+
+```powershell
+dvc metrics diff HEAD~1 HEAD
+```
+
+Example:
+
+```text
+Path          Metric     HEAD~1    HEAD
+metrics.json  accuracy   1.00      0.92
+```
+
+Again, **your actual metric values may differ**.
+
+---
+
+# Result
+
+**Thus, a three-stage DVC pipeline consisting of Prepare, Train, and Evaluate was successfully created. Two versions of the dataset were managed using Git and DVC, the pipeline was reproduced using `dvc repro`, and the metric changes between dataset versions were compared using `dvc metrics diff`.**
