@@ -1,0 +1,308 @@
+
+# Experiment 5a — Docker Multi-Stage Build
+
+## Aim
+
+To optimize a Node.js application's Docker image size using a **Docker Multi-Stage Build** and compare it with a normal single-stage Docker image.
+
+---
+
+# Step 1: Create a Node.js application
+
+Create a new folder:
+
+```text
+docker-multistage
+```
+
+Open it in VS Code.
+
+Open the terminal and run:
+
+```powershell
+npm init -y
+```
+
+Then install Express:
+
+```powershell
+npm install express
+```
+
+---
+
+# Step 2: Create `app.js`
+
+Create:
+
+```text
+app.js
+```
+
+Put this simple code:
+
+```javascript
+const express = require("express");
+
+const app = express();
+
+app.get("/", (req, res) => {
+    res.send("Hello from Node.js Docker!");
+});
+
+app.listen(3000, () => {
+    console.log("Server running on port 3000");
+});
+```
+
+That's all we need for the application.
+
+---
+
+# Step 3: Test the application
+
+Run:
+
+```powershell
+node app.js
+```
+
+You should see:
+
+```text
+Server running on port 3000
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+You should get:
+
+```text
+Hello from Node.js Docker!
+```
+
+Press:
+
+```text
+Ctrl + C
+```
+
+to stop it.
+
+---
+
+# Step 4: Create the normal Dockerfile
+
+Create a file named:
+
+```text
+Dockerfile
+```
+
+Put:
+
+```dockerfile
+FROM node:20
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["node", "app.js"]
+```
+
+This is our **single-stage/baseline Dockerfile**.
+
+---
+
+# Step 5: Build the large image
+
+Run:
+
+```powershell
+docker build -t app-large:latest .
+```
+
+Then check its size:
+
+```powershell
+docker images
+```
+
+You should see something similar to:
+
+```text
+REPOSITORY    TAG       SIZE
+app-large     latest    ...
+```
+
+**Don't worry about the exact size.** It depends on the Docker/Node version and downloaded layers.
+
+---
+
+# Step 6: Create Multi-Stage Dockerfile
+
+We need a second Dockerfile.
+
+Create:
+
+```text
+Dockerfile.optimized
+```
+
+Put:
+
+```dockerfile
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY --from=build /app .
+
+EXPOSE 3000
+
+CMD ["node", "app.js"]
+```
+
+### What is happening?
+
+There are **2 stages**:
+
+```text
+Stage 1: Build
+node:20-alpine
+      ↓
+Install dependencies
+      ↓
+Prepare application
+
+Stage 2: Run
+node:20-alpine
+      ↓
+Copy prepared application
+      ↓
+Run app
+```
+
+The important idea is:
+
+> **Build stage prepares the application; final stage contains only what is needed to run it.**
+
+---
+
+# Step 7: Build optimized image
+
+Because our file is called `Dockerfile.optimized`, use:
+
+```powershell
+docker build -f Dockerfile.optimized -t app-optimized:latest .
+```
+
+Then:
+
+```powershell
+docker images
+```
+
+You should now see:
+
+```text
+REPOSITORY        TAG       SIZE
+app-large         latest    ...
+app-optimized     latest    ...
+```
+
+The optimized image should generally be **smaller** because we're using the lightweight `node:20-alpine` image.
+
+---
+
+# Step 8: Compare image sizes
+
+The easiest command is:
+
+```powershell
+docker images
+```
+
+For a cleaner comparison:
+
+```powershell
+docker images app-large
+docker images app-optimized
+```
+
+You can write the observed sizes in your record.
+
+For example:
+
+```text
+app-large       → 1.xx GB
+app-optimized   → 2xx MB
+```
+
+**Your actual values may be different.**
+
+---
+
+# 🧠 Commands to remember
+
+You only really need these:
+
+```powershell
+npm init -y
+npm install express
+```
+
+Build normal:
+
+```powershell
+docker build -t app-large .
+```
+
+Build optimized:
+
+```powershell
+docker build -f Dockerfile.optimized -t app-optimized .
+```
+
+Compare:
+
+```powershell
+docker images
+```
+
+### Memory trick:
+
+**Normal → Build → Optimized → Build → Compare**
+
+---
+
+## Before we move to Jenkins
+
+Let's do this practically **one command/file at a time**, so if you get an error we fix it immediately.
+
+### First, create the folder and run:
+
+```powershell
+npm init -y
+```
+
+Then tell me what you get.
