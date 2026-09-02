@@ -1,4 +1,5 @@
 # 12. Git Feature Branch — Student Search
+You are working as part of a 4-member development team developing a Python-based Student Attendance Management System. The GitHub repository is: student-attendance-system. Your team follows this workflow:
 
 ## Aim
 
