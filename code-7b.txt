@@ -1,0 +1,266 @@
+
+# Experiment — MLflow for ML Model Tracking
+
+## Aim
+
+To install and configure **MLflow** for tracking machine-learning experiments, parameters, metrics, models, and different runs using Logistic Regression, Random Forest, and XGBoost on the Wine Quality dataset.
+
+---
+
+## Requirements
+
+* Python
+* Jupyter Notebook / VS Code
+* MLflow
+* scikit-learn
+* XGBoost
+* pandas
+
+Install the required packages:
+
+```bash
+pip install mlflow scikit-learn xgboost pandas
+```
+
+---
+
+# Procedure
+
+## Step 1: Prepare the dataset
+
+For a simple demonstration, use the Wine Quality dataset.
+
+```python
+import pandas as pd
+
+df = pd.read_csv("winequality-red.csv")
+
+X = df.drop("quality", axis=1)
+y = df["quality"]
+```
+
+Convert the problem into binary classification:
+
+```python
+y = (y >= 6).astype(int)
+```
+
+Split the data:
+
+```python
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+```
+
+---
+
+# Step 2: Train and track models using MLflow
+
+Import:
+
+```python
+import mlflow
+import mlflow.sklearn
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+```
+
+Set the experiment:
+
+```python
+mlflow.set_experiment("Wine Quality Models")
+```
+
+---
+
+## Step 3: Logistic Regression
+
+```python
+with mlflow.start_run(run_name="Logistic Regression"):
+
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X_train, y_train)
+
+    pred = model.predict(X_test)
+    prob = model.predict_proba(X_test)[:, 1]
+
+    accuracy = accuracy_score(y_test, pred)
+    f1 = f1_score(y_test, pred)
+    auc = roc_auc_score(y_test, prob)
+
+    mlflow.log_param("model", "Logistic Regression")
+    mlflow.log_param("max_iter", 1000)
+
+    mlflow.log_metric("accuracy", accuracy)
+    mlflow.log_metric("f1", f1)
+    mlflow.log_metric("roc_auc", auc)
+
+    mlflow.sklearn.log_model(model, "model")
+```
+
+---
+
+# Step 4: Random Forest
+
+```python
+with mlflow.start_run(run_name="Random Forest"):
+
+    model = RandomForestClassifier(
+        n_estimators=100,
+        random_state=42
+    )
+
+    model.fit(X_train, y_train)
+
+    pred = model.predict(X_test)
+    prob = model.predict_proba(X_test)[:, 1]
+
+    accuracy = accuracy_score(y_test, pred)
+    f1 = f1_score(y_test, pred)
+    auc = roc_auc_score(y_test, prob)
+
+    mlflow.log_param("model", "Random Forest")
+    mlflow.log_param("n_estimators", 100)
+
+    mlflow.log_metric("accuracy", accuracy)
+    mlflow.log_metric("f1", f1)
+    mlflow.log_metric("roc_auc", auc)
+
+    mlflow.sklearn.log_model(model, "model")
+```
+
+---
+
+# Step 5: XGBoost
+
+```python
+with mlflow.start_run(run_name="XGBoost"):
+
+    model = XGBClassifier(
+        n_estimators=100,
+        random_state=42
+    )
+
+    model.fit(X_train, y_train)
+
+    pred = model.predict(X_test)
+    prob = model.predict_proba(X_test)[:, 1]
+
+    accuracy = accuracy_score(y_test, pred)
+    f1 = f1_score(y_test, pred)
+    auc = roc_auc_score(y_test, prob)
+
+    mlflow.log_param("model", "XGBoost")
+    mlflow.log_param("n_estimators", 100)
+
+    mlflow.log_metric("accuracy", accuracy)
+    mlflow.log_metric("f1", f1)
+    mlflow.log_metric("roc_auc", auc)
+
+    mlflow.xgboost.log_model(model, "model")
+```
+
+---
+
+# Step 6: Start MLflow UI
+
+In the terminal:
+
+```bash
+mlflow ui
+```
+
+You should get something like:
+
+```text
+http://127.0.0.1:5000
+```
+
+Open that address in your browser.
+
+You will see:
+
+```text
+Wine Quality Models
+
+Run 1 → Logistic Regression
+Run 2 → Random Forest
+Run 3 → XGBoost
+```
+
+You can compare:
+
+* Parameters
+* Accuracy
+* F1-score
+* ROC-AUC
+* Models
+* Different runs
+
+---
+
+# Step 7: Select the Best Model Programmatically
+
+The question specifically asks:
+
+> Select the best model programmatically via MLflow client API.
+
+Use:
+
+```python
+from mlflow.tracking import MlflowClient
+
+client = MlflowClient()
+
+runs = client.search_runs(
+    experiment_names=["Wine Quality Models"],
+    order_by=["metrics.roc_auc DESC"]
+)
+
+best_run = runs[0]
+
+print("Best model:", best_run.data.params["model"])
+print("ROC-AUC:", best_run.data.metrics["roc_auc"])
+print("Run ID:", best_run.info.run_id)
+```
+
+This sorts the runs by **ROC-AUC from highest to lowest** and selects the first one.
+
+---
+
+# Output
+
+MLflow UI will show three runs:
+
+| Model               | Accuracy |    F1 | ROC-AUC |
+| ------------------- | -------: | ----: | ------: |
+| Logistic Regression |    value | value |   value |
+| Random Forest       |    value | value |   value |
+| XGBoost             |    value | value |   value |
+
+Your actual values will depend on the dataset/version and train-test split.
+
+The MLflow interface will allow you to compare the models and their parameters and metrics.
+
+Programmatic output will be similar to:
+
+```text
+Best model: XGBoost
+ROC-AUC: 0.XX
+Run ID: xxxxxxxxxxxxx
+```
+
+**The best model is whichever run has the highest ROC-AUC.**
+
+---
+
+# Result
+
+**Thus, MLflow was successfully installed and configured to track experiments, parameters, metrics, machine-learning models, and different runs. Logistic Regression, Random Forest, and XGBoost models were trained on the Wine Quality dataset, compared using MLflow, and the best-performing model was selected programmatically using the MLflow Client API.**
