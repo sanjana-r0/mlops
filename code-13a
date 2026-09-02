@@ -1,0 +1,240 @@
+# 13(a) Automated Web Application Deployment Using Jenkins
+
+## Aim
+
+To implement a simple CI/CD workflow using **Git, Jenkins, HTML/CSS/JavaScript, and a local HTTP server**.
+
+## Requirements
+
+* Git/GitHub
+* Jenkins
+* Python
+* VS Code
+
+---
+
+## Step 1: Create the web project
+
+Create a GitHub repository:
+
+```text
+student-result-web
+```
+
+Clone it:
+
+```powershell
+git clone https://github.com/YOUR_USERNAME/student-result-web.git
+cd student-result-web
+```
+
+---
+
+## Step 2: Create `index.html`
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Result</title>
+</head>
+<body>
+    <h1>Student Result Web Application</h1>
+    <p>Deployment successful using Jenkins!</p>
+</body>
+</html>
+```
+
+---
+
+## Step 3: Push the project
+
+```powershell
+git add .
+git commit -m "Add student result web application"
+git push
+```
+
+---
+
+## Step 4: Create Jenkinsfile
+
+Create a file named:
+
+```text
+Jenkinsfile
+```
+
+Use:
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                bat 'echo Building Student Result Web Application'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                bat 'echo Testing completed successfully'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                bat 'if not exist deploy mkdir deploy'
+                bat 'copy /Y index.html deploy\\index.html'
+            }
+        }
+    }
+}
+```
+
+Jenkins Declarative Pipelines use `pipeline`, `agent`, `stages`, and `steps`, with stages commonly representing Build, Test, and Deploy activities. ([Jenkins][1])
+
+---
+
+## Step 5: Push Jenkinsfile
+
+```powershell
+git add .
+git commit -m "Add Jenkins CI/CD pipeline"
+git push
+```
+
+---
+
+## Step 6: Create Jenkins Job
+
+In Jenkins:
+
+**New Item → Pipeline**
+
+Give name:
+
+```text
+student-result-web
+```
+
+Select:
+
+```text
+Pipeline → Pipeline script from SCM
+```
+
+Choose:
+
+```text
+Git
+```
+
+Enter your repository URL:
+
+```text
+https://github.com/YOUR_USERNAME/student-result-web.git
+```
+
+Branch:
+
+```text
+*/main
+```
+
+Script Path:
+
+```text
+Jenkinsfile
+```
+
+Save.
+
+Jenkins supports loading a `Jenkinsfile` directly from source control using **Pipeline script from SCM**. ([Jenkins][2])
+
+---
+
+## Step 7: Run Jenkins
+
+Click:
+
+```text
+Build Now
+```
+
+The stages should complete:
+
+```text
+Checkout
+Build
+Test
+Deploy
+```
+
+Expected:
+
+```text
+Finished: SUCCESS
+```
+
+---
+
+## Step 8: Start local HTTP server
+
+After Jenkins deploys the file, go to the project folder and run:
+
+```powershell
+python -m http.server 9000 --directory deploy
+```
+
+Keep this terminal running.
+
+---
+
+## Step 9: Open the application
+
+Open:
+
+```text
+http://localhost:9000
+```
+
+You should see:
+
+```text
+Student Result Web Application
+
+Deployment successful using Jenkins!
+```
+
+---
+
+## Important Commands
+
+```powershell
+git add .
+git commit -m "message"
+git push
+```
+
+Jenkins:
+
+```text
+Build Now
+```
+
+Server:
+
+```powershell
+python -m http.server 9000 --directory deploy
+```
+
