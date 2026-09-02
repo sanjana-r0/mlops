@@ -1,0 +1,59 @@
+# 11(a) Git — Check Changes in Working Directory
+
+## Aim
+
+To check the changes made by Arun in `student.py` before committing them.
+
+## Procedure
+
+### Step 1: Open the project
+
+```powershell
+cd student-collaboration
+```
+
+### Step 2: Modify `student.py`
+
+Add:
+
+```python
+def calculate_average(marks):
+    return sum(marks) / len(marks)
+```
+
+### Step 3: Check the changes
+
+Run:
+
+```powershell
+git diff
+```
+
+This displays the exact changes made in the working directory that have **not yet been staged**. ([Git][1])
+
+### Expected Output
+
+You should see something similar to:
+
+```text
+diff --git a/student.py b/student.py
+...
++def calculate_average(marks):
++    return sum(marks) / len(marks)
+```
+
+The `+` lines indicate newly added lines.
+
+### Important Command
+
+```powershell
+git diff
+```
+
+**That's the main command required for 11(a).**
+
+## Result
+
+Successfully used `git diff` to view the changes made to `student.py` before committing them.
+
+[1]: https://git-scm.com/docs/git-diff.html?utm_source=chatgpt.com "Git - git-diff Documentation"
