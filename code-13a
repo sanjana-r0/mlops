@@ -1,4 +1,7 @@
 # 13(a) Automated Web Application Deployment Using Jenkins
+Automated Web Application Deployment Using Jenkins
+You are working as a developer in a college software team. Your team has developed a simple
+Student Result Web Application using: HTML/CSS/JavaScript for the frontend ,Git for version control ,Jenkins for Continuous Integration and Continuous Deployment ,A local HTTP server for hosting the application. Perform development of CI/CD Workflow and show the result
 
 ## Aim
 
