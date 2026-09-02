@@ -1,0 +1,176 @@
+# 2(a) Local Automated CI with Jenkins
+2. Scenario: Your team has created a static portfolio site in a local Git repository. Your task is to establish a local, automated continuous integration process.
+
+## Aim
+
+To create a local Git repository containing a portfolio website and automate its deployment using a Jenkins Freestyle job.
+
+## Step 1: Create project
+
+```powershell
+mkdir portfolio
+cd portfolio
+git init
+```
+
+Create `index.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Portfolio</title>
+</head>
+<body>
+    <h1>Welcome to My Portfolio</h1>
+    <p>Version 1</p>
+</body>
+</html>
+```
+
+Commit it:
+
+```powershell
+git add .
+git commit -m "Initial portfolio"
+```
+
+---
+
+## Step 2: Create Jenkins Job
+
+Open Jenkins:
+
+```text
+http://localhost:8080
+```
+
+Go to:
+
+**New Item → Local-Portfolio-Deploy → Freestyle project → OK**
+
+Under **Source Code Management**:
+
+* Select **Git**
+* Repository URL: enter your local repository path, for example:
+
+```text
+D:\portfolio\.git
+```
+
+If Jenkins doesn't accept the path, use:
+
+```text
+file:///D:/portfolio
+```
+
+---
+
+## Step 3: Add Build Step
+
+Go to:
+
+**Build → Add build step → Execute Windows batch command**
+
+Use:
+
+```bat
+if not exist C:\inetpub\wwwroot mkdir C:\inetpub\wwwroot
+copy /Y index.html C:\inetpub\wwwroot\index.html
+```
+
+Jenkins Freestyle projects support build steps such as executing commands, followed by **Build Now** and viewing the Console Output. ([jenkins.io](https://www.jenkins.io/doc/book/using/using-agents/?utm_source=chatgpt.com))
+
+> If you don't have IIS/`C:\inetpub\wwwroot`, you can create that folder manually. For this lab, the important part is that Jenkins copies `index.html` into the web-server root.
+
+---
+
+## Step 4: Build
+
+Click:
+
+**Build Now**
+
+Then open:
+
+**Build #1 → Console Output**
+
+Expected:
+
+```text
+Finished: SUCCESS
+```
+
+Check:
+
+```text
+C:\inetpub\wwwroot\index.html
+```
+
+---
+
+## Step 5: Make a Change
+
+Change:
+
+```html
+<p>Version 1</p>
+```
+
+to:
+
+```html
+<p>Version 2 - Updated</p>
+```
+
+Commit:
+
+```powershell
+git add index.html
+git commit -m "Update portfolio version"
+```
+
+---
+
+## Step 6: Run Jenkins Again
+
+In Jenkins:
+
+**Local-Portfolio-Deploy → Build Now**
+
+Check **Console Output**:
+
+```text
+Finished: SUCCESS
+```
+
+The updated `index.html` is copied to:
+
+```text
+C:\inetpub\wwwroot\
+```
+
+## Important Commands
+
+```powershell
+git init
+git add .
+git commit -m "Initial portfolio"
+```
+
+After modification:
+
+```powershell
+git add index.html
+git commit -m "Update portfolio version"
+```
+
+Jenkins:
+
+```text
+Build Now → Console Output → SUCCESS
+```
+
+## Result
+
+Successfully created a local Git repository and configured a Jenkins Freestyle job to pull the repository and automatically copy the updated `index.html` to the local web-server root.
