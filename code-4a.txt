@@ -1,0 +1,138 @@
+# 4(a) Git Collaborative Development — Student Management
+
+## Aim
+
+To implement a Student Management feature using a separate Git branch, commit the changes, push the branch to GitHub, and create a Pull Request to merge it into `develop`.
+
+## Step 1: Clone the project
+
+```powershell
+git clone https://github.com/YOUR_USERNAME/college-management.git
+cd college-management
+```
+
+## Step 2: Get latest `develop`
+
+```powershell
+git checkout develop
+git pull origin develop
+```
+
+## Step 3: Create feature branch
+
+```powershell
+git checkout -b feature/student
+```
+
+Check:
+
+```powershell
+git branch
+```
+
+You should see:
+
+```text
+* feature/student
+  develop
+```
+
+---
+
+## Step 4: Create `student.py`
+
+```python
+students = []
+
+
+def add_student(name, age):
+    students.append({"name": name, "age": age})
+
+
+def display_students():
+    return students
+
+
+def search_student(name):
+    for student in students:
+        if student["name"].lower() == name.lower():
+            return student
+    return None
+```
+
+---
+
+## Step 5: Check changes
+
+```powershell
+git status
+```
+
+---
+
+## Step 6: Stage changes
+
+```powershell
+git add student.py
+```
+
+Check:
+
+```powershell
+git status
+```
+
+---
+
+## Step 7: Commit
+
+```powershell
+git commit -m "Add student management feature"
+```
+
+---
+
+## Step 8: Push branch
+
+```powershell
+git push -u origin feature/student
+```
+
+GitHub's normal feature workflow is branch → edit → commit → push → pull request. ([GitHub Docs][1])
+
+---
+
+## Step 9: Create Pull Request
+
+Go to your GitHub repository.
+
+Click:
+
+**Compare & pull request**
+
+Set:
+
+```text
+base: develop
+compare: feature/student
+```
+
+Click:
+
+**Create pull request**
+
+Do **not** merge it if the question only asks you to create the PR.
+
+## Important Commands
+
+```powershell
+git clone <URL>
+git checkout develop
+git pull origin develop
+git checkout -b feature/student
+git status
+git add student.py
+git commit -m "Add student management feature"
+git push -u origin feature/student
+```
+
