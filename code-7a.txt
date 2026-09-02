@@ -1,0 +1,311 @@
+
+We'll use **Docker Hub**, 
+
+# Experiment 7 — Secure Docker Image Publishing using Jenkins
+
+## Aim
+
+To create a secure Jenkins pipeline that **builds a Docker image, logs into Docker Hub using stored credentials, tags the image, and pushes it to a Docker registry**.
+
+---
+
+## Requirements
+
+* Jenkins
+* Docker Desktop
+* Git/GitHub
+* Docker Hub account
+* A Dockerfile
+* Jenkins **Username with Password** credential
+
+---
+
+# Procedure
+
+## Step 1: Create Docker Hub repository
+
+Create a free account on Docker Hub.
+
+Create a repository, for example:
+
+```text
+jenkins-demo
+```
+
+Suppose your Docker Hub username is:
+
+```text
+yourusername
+```
+
+Your image will eventually be:
+
+```text
+yourusername/jenkins-demo:latest
+```
+
+---
+
+# Step 2: Create a simple Docker project
+
+Create:
+
+```text
+jenkins-docker-push/
+│
+├── app.txt
+├── Dockerfile
+└── Jenkinsfile
+```
+
+### `app.txt`
+
+```text
+Hello from Docker Hub!
+```
+
+### `Dockerfile`
+
+```dockerfile
+FROM alpine
+COPY app.txt /app.txt
+CMD ["cat", "/app.txt"]
+```
+
+---
+
+# Step 3: Add Docker Hub credentials to Jenkins
+
+In Jenkins:
+
+**Manage Jenkins → Credentials → Global → Add Credentials**
+
+Select:
+
+```text
+Kind: Username with password
+```
+
+Enter:
+
+```text
+Username: your Docker Hub username
+Password: your Docker Hub password
+ID: dockerhub-creds
+```
+
+The important part is:
+
+```text
+ID = dockerhub-creds
+```
+
+Jenkins will securely store these credentials.
+
+**Do not write your Docker Hub password inside the Jenkinsfile.**
+
+---
+
+# Step 4: Create Jenkinsfile
+
+Create:
+
+```text
+Jenkinsfile
+```
+
+Use:
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Build Image') {
+            steps {
+                bat 'docker build -t myapp .'
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                }
+            }
+        }
+
+        stage('Tag Image') {
+            steps {
+                bat 'docker tag myapp %DOCKER_USER%/jenkins-demo:latest'
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                bat 'docker push %DOCKER_USER%/jenkins-demo:latest'
+            }
+        }
+    }
+}
+```
+
+### What is happening?
+
+```text
+Build
+  ↓
+Login securely
+  ↓
+Tag
+  ↓
+Push
+  ↓
+Docker Hub
+```
+
+The important security part is:
+
+```groovy
+withCredentials(...)
+```
+
+It allows Jenkins to use the username/password **without hardcoding them in the Jenkinsfile**.
+
+---
+
+# Step 5: Push project to GitHub
+
+```bash
+git add .
+git commit -m "Add Docker Hub Jenkins pipeline"
+git push
+```
+
+---
+
+# Step 6: Configure Jenkins
+
+Create a **Pipeline** project.
+
+Select:
+
+```text
+Pipeline script from SCM
+```
+
+Then:
+
+```text
+SCM → Git
+```
+
+Enter your GitHub repository URL.
+
+Branch:
+
+```text
+*/main
+```
+
+Script Path:
+
+```text
+Jenkinsfile
+```
+
+Click **Save**.
+
+---
+
+# Step 7: Run Pipeline
+
+Click:
+
+**Build Now**
+
+Jenkins will execute:
+
+```text
+Build Image       ✓
+Login             ✓
+Tag Image         ✓
+Push Image        ✓
+```
+
+---
+
+# Step 8: Verify on Docker Hub
+
+Go to your Docker Hub repository.
+
+You should see:
+
+```text
+jenkins-demo
+    └── latest
+```
+
+You can also check from the terminal:
+
+```bash
+docker images
+```
+
+You should see something like:
+
+```text
+yourusername/jenkins-demo    latest
+```
+
+---
+
+# Output
+
+Jenkins should show:
+
+```text
+Build Image          ✓
+Login to Docker Hub  ✓
+Tag Image            ✓
+Push Image            ✓
+
+Finished: SUCCESS
+```
+
+Docker Hub should contain:
+
+```text
+yourusername/jenkins-demo:latest
+```
+
+---
+
+# Result
+
+**Thus, a secure Jenkins pipeline was successfully created to build a Docker image, securely authenticate with Docker Hub using Jenkins credentials, tag the image, and push it to the Docker registry.**
+
+
+Main commands:
+
+```text
+docker build
+docker login
+docker tag
+docker push
+```
+
+And the **security keyword** is:
+
+```text
+withCredentials
+```
+
+### One important point
+
+You **do not manually type your Docker Hub password in the Jenkinsfile**. You enter it **once in Jenkins Credentials**, give it the ID `dockerhub-creds`, and Jenkins uses it through `withCredentials`.
