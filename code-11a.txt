@@ -1,3 +1,5 @@
+Scenario 1 — Arun starts working, Arun has successfully cloned the project 
+from GitHub.He now modifies student.py and adds a new function: 
 # 11(a) Git — Check Changes in Working Directory
 
 ## Aim
