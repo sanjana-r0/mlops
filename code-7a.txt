@@ -1,4 +1,4 @@
-
+Scenario: CI pipelines are responsible for publishing verified Docker images to central registries. You must secure and automate this flow within a Jenkins Pipeline.
 We'll use **Docker Hub**, 
 
 # Experiment 7 — Secure Docker Image Publishing using Jenkins
