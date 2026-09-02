@@ -1,0 +1,426 @@
+# 9(b) MLflow Model Registry
+
+The requirement says:
+
+> Register the best model from Experiment 7 via MLflow Python API → add description and tags → transition **None → Staging → Production** with validation gate → load Production model → batch inference.
+
+MLflow's Python API supports registering model versions, descriptions and tags, and loading registered models. ([MLflow AI Platform][2])
+
+**One important current-version note:** MLflow has deprecated the old fixed **Stages** system in favor of aliases/tags, but your lab explicitly asks for `None → Staging → Production`, so we'll implement the lab requirement using the stage API. ([MLflow AI Platform][3])
+
+---
+
+## Overall flow
+
+```text
+Experiment 7
+     |
+     v
+Find best model
+     |
+     v
+Register model
+     |
+     v
+None
+     |
+     | accuracy > threshold
+     v
+Staging
+     |
+     | validation passes
+     v
+Production
+     |
+     v
+Load Production model
+     |
+     v
+Batch inference
+```
+
+---
+
+# Step 1 — Make sure MLflow is installed
+
+```powershell
+pip install mlflow scikit-learn pandas
+```
+
+---
+
+# Step 2 — Start MLflow with a database backend
+
+For the Model Registry, use SQLite:
+
+```powershell
+mlflow server --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
+```
+
+Keep this terminal running.
+
+Open another terminal and go to your project.
+
+---
+
+# Step 3 — Identify the best model from Experiment 7
+
+In Experiment 7 we trained:
+
+```text
+Logistic Regression
+Random Forest
+XGBoost
+```
+
+and selected the model with the best ROC-AUC.
+
+We'll programmatically find that run again.
+
+Create:
+
+```text
+register_model.py
+```
+
+Start with:
+
+```python
+import mlflow
+from mlflow import MlflowClient
+
+mlflow.set_tracking_uri("http://127.0.0.1:5000")
+
+client = MlflowClient()
+
+experiment = client.get_experiment_by_name("Wine Quality Models")
+
+runs = client.search_runs(
+    experiment_ids=[experiment.experiment_id],
+    order_by=["metrics.roc_auc DESC"]
+)
+
+best_run = runs[0]
+
+print("Best Run ID:", best_run.info.run_id)
+print("Best ROC-AUC:", best_run.data.metrics["roc_auc"])
+print("Best Model:", best_run.data.tags.get("mlflow.runName"))
+```
+
+Run:
+
+```powershell
+python register_model.py
+```
+
+You should get something like:
+
+```text
+Best Run ID: abc123...
+Best ROC-AUC: 0.91
+Best Model: Random Forest
+```
+
+---
+
+# Step 4 — Add validation gate
+
+Suppose our minimum acceptable accuracy is:
+
+```python
+threshold = 0.70
+```
+
+Add:
+
+```python
+accuracy = best_run.data.metrics["accuracy"]
+
+threshold = 0.70
+
+if accuracy <= threshold:
+    print("Validation failed")
+    exit()
+
+print("Validation passed")
+```
+
+So:
+
+```text
+accuracy > 0.70
+       |
+      YES
+       |
+    Register
+```
+
+If:
+
+```text
+accuracy <= 0.70
+```
+
+the model will **not be promoted**.
+
+---
+
+# Step 5 — Register the best model
+
+Add:
+
+```python
+model_name = "WineQualityBestModel"
+
+model_uri = f"runs:/{best_run.info.run_id}/model"
+
+result = mlflow.register_model(
+    model_uri=model_uri,
+    name=model_name
+)
+
+print("Registered Model:", result.name)
+print("Version:", result.version)
+```
+
+The exact artifact path must match whatever artifact name you used in Experiment 7. For example, if you logged the model using:
+
+```python
+mlflow.sklearn.log_model(model, "model")
+```
+
+then:
+
+```python
+model_uri = f"runs:/{best_run.info.run_id}/model"
+```
+
+is correct.
+
+---
+
+# Step 6 — Add description
+
+After registration:
+
+```python
+version = result.version
+
+client.update_model_version(
+    name=model_name,
+    version=version,
+    description="Best Wine Quality model selected based on ROC-AUC from Experiment 7."
+)
+```
+
+---
+
+# Step 7 — Add tags
+
+Add:
+
+```python
+client.set_model_version_tag(
+    name=model_name,
+    version=version,
+    key="validation_status",
+    value="passed"
+)
+
+client.set_model_version_tag(
+    name=model_name,
+    version=version,
+    key="source_experiment",
+    value="Experiment 7"
+)
+```
+
+Now the model contains metadata showing:
+
+```text
+validation_status = passed
+source_experiment = Experiment 7
+```
+
+MLflow supports model-version tags and descriptions through its client API. ([MLflow AI Platform][2])
+
+---
+
+# Step 8 — Move model to Staging
+
+Because our validation gate passed:
+
+```python
+client.transition_model_version_stage(
+    name=model_name,
+    version=version,
+    stage="Staging"
+)
+```
+
+Print:
+
+```python
+print("Model moved to Staging")
+```
+
+---
+
+# Step 9 — Move Staging → Production
+
+For the lab demonstration, we'll assume staging validation also passes.
+
+```python
+client.transition_model_version_stage(
+    name=model_name,
+    version=version,
+    stage="Production"
+)
+```
+
+Print:
+
+```python
+print("Model moved to Production")
+```
+
+So your model lifecycle is:
+
+```text
+None
+  ↓
+Staging
+  ↓
+Production
+```
+
+This is exactly the lifecycle requested in the question. MLflow's documented stage values include `None`, `Staging`, `Production`, and `Archived`. ([MLflow AI Platform][4])
+
+---
+
+# Step 10 — Load Production model
+
+Now create:
+
+```text
+batch_inference.py
+```
+
+Use:
+
+```python
+import mlflow
+import pandas as pd
+
+mlflow.set_tracking_uri("http://127.0.0.1:5000")
+
+model_name = "WineQualityBestModel"
+
+model = mlflow.pyfunc.load_model(
+    f"models:/{model_name}/Production"
+)
+
+data = pd.read_csv("winequality-red.csv")
+
+X = data.drop("quality", axis=1)
+
+predictions = model.predict(X)
+
+data["prediction"] = predictions
+
+data.to_csv("batch_predictions.csv", index=False)
+
+print(data[["prediction"]].head())
+print("Batch inference completed")
+```
+
+MLflow supports loading a registered model by its stage and using it for predictions/batch inference. ([MLflow AI Platform][3])
+
+Run:
+
+```powershell
+python batch_inference.py
+```
+
+You'll get:
+
+```text
+   prediction
+0           1
+1           1
+2           0
+3           1
+4           0
+
+Batch inference completed
+```
+
+and:
+
+```text
+batch_predictions.csv
+```
+
+will be created.
+
+---
+
+# What to show for the lab output
+
+### 9(a)
+
+Show:
+
+```text
+Blue container → localhost:8081 → Version 1.0 (Blue)
+
+Green container → localhost:8082 → Version 2.0 (Green)
+
+Nginx → localhost:80 → Blue
+```
+
+Then change:
+
+```text
+8081 → 8082
+```
+
+and run:
+
+```powershell
+docker exec nginx-proxy nginx -s reload
+```
+
+Then show:
+
+```text
+localhost:80 → Version 2.0 (Green)
+```
+
+### 9(b)
+
+Show:
+
+```text
+Best Model: Random Forest
+Accuracy: 0.xx
+Validation passed
+
+Registered Model: WineQualityBestModel
+Version: 1
+
+None → Staging → Production
+
+Batch inference completed
+```
+
+---
+
+## Exam-ready Result
+
+**9(a) Result:**
+Successfully implemented Blue-Green deployment using two web containers and an Nginx reverse proxy. Traffic was switched from Blue Version 1.0 to Green Version 2.0 using `nginx -s reload` without restarting the proxy.
+
+**9(b) Result:**
+Successfully registered the best model from Experiment 7 using the MLflow Python API, added metadata and tags, validated the model using an accuracy threshold, promoted it from None → Staging → Production, and performed batch inference using the Production model.
+
